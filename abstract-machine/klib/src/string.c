@@ -42,13 +42,10 @@ int strcmp(const char *p1, const char *p2) {
         c1 = (unsigned char) *s1++;
         c2 = (unsigned char) *s2++;
 
-        if (c1 == '\0'){
-            printf("%c\n",c1);
+        if (c1 == '\0')
             return c1 - c2;
-        }
-
     } while (c1 == c2); 
-    printf("%c\n",c1);
+
     return c1 - c2;
 }
 
