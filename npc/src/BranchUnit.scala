@@ -27,7 +27,7 @@ class ysyx_26030092_BranchUnit extends Module{
     val lsu_trap = IO(Input(Bool()))
 
     val branch_cond = MuxLookup(branch_op, false.B)(Seq(
-        BranchOp.beq  -> (rs1 =/= rs2),
+        BranchOp.beq  -> (rs1 === rs2),
         BranchOp.bne  -> (rs1 =/= rs2),
         BranchOp.blt  -> (rs1.asSInt <  rs2.asSInt),
         BranchOp.bge  -> (rs1.asSInt >= rs2.asSInt),
