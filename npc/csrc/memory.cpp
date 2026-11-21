@@ -103,7 +103,7 @@ extern "C" void sdram_write(char high_sdram, int32_t addr, int32_t wdata, char m
 uint32_t mem_read(uint32_t addr) {
     if (addr >= 0x20000000 && addr < 0x20001000)         // MROM
         return mrom[(addr - 0x20000000) >> 2];
-    else if (addr >= 0x30000000 && addr < 0x40000000) {  // Flash XIP
+    else if (addr >= 0x30000010 && addr < 0x40000000) {  // Flash XIP
         uint32_t off = (addr - 0x30000000) >> 2;
         if (off >= FLASH_SIZE / 4) {
             printf("Error: mem_read out of range: addr=0x%08x\n", addr);
