@@ -53,7 +53,7 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
             AXI4_port.araddr := block_addr
             AXI4_port.arlen := (beats - 1).U
             AXI4_port.arsize := 2.U
-            AXI4_port.arburst := 2.U
+            AXI4_port.arburst := 1.U
             when(AXI4_port.arready){
                 state := s_wait_mem_data
             }
