@@ -11,6 +11,11 @@ SPLIT_DIR = $(BUILD_DIR)/split
 CORE = $(BUILD_DIR)/ysyx_26030092.sv
 PERF_NAMES_H = $(BUILD_DIR)/perf_names.h
 
+# ysyxSoC 路径：环境变量为空时按仓库相对位置推导（CI 里没有 export 这个变量）
+ifeq ($(strip $(YSYX_SoC_HOME)),)
+  YSYX_SoC_HOME := $(abspath $(CURDIR)/../ysyxSoC)
+endif
+
 INC_PATH ?= $(NPC_HOME)/csrc/include
 INC_PATH += $(NPC_HOME)/tools/capstone/include
 INC_PATH += $(NPC_HOME)/include/generated/
@@ -61,7 +66,7 @@ $(BIN): $(KCONFIG_INCLUDE) $(CORE) $(VSRCS) $(PERF_NAMES_H) $(SOC_CSRCS) $(NVBOA
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) $(VSRCS) \
 		--top-module $(TOPNAME) $(CORE) $(SOC_CSRCS) $(NVBOARD_ARCHIVE)\
-		-CFLAGS "$(CXXFLAGS)" -LDFLAGS "$(LDFLAGS)"\
+		-CFLAGS "$(CXXFLAGS)" -LDFLAGS "$(LDFLAGS)" \
 		--Mdir $(OBJ_DIR) --exe -o  $(CURDIR)/$(BIN) \
 		-Iresources/include
 
@@ -93,7 +98,7 @@ $(CORE): $(CHISEL_SRC) $(RESOURCES)
 	$(call git_commit, "generate verilog")
 	rm -rf $(SPLIT_DIR)
 	mkdir -p $(SPLIT_DIR)
-	mill -i runMain Elaborate --target-dir $(SPLIT_DIR)
+	mill -i playground.runMain Elaborate --target-dir $(SPLIT_DIR)
 	cat $(SPLIT_DIR)/*.sv $(RESOURCES) > $@
 
 $(PERF_NAMES_H): $(CORE) scripts/gen_perf_names.py
@@ -162,10 +167,10 @@ lint: $(CORE)
 
 # 常用工具目标
 test:
-	mill -i test
+	mill -i playground.test
 
 help:
-	mill -i runMain Elaborate --help
+	mill -i playground.runMain Elaborate --help
 
 reformat:
 	mill -i __.reformat
