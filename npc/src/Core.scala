@@ -26,7 +26,6 @@ class ysyx_26030092 extends Module{
     val IDU_u = Module(new ysyx_26030092_IDU())
     val EXU_u = Module(new ysyx_26030092_EXU())
     val WBU_u = Module(new ysyx_26030092_WBU())
-    val BPU_u = Module(new ysyx_26030092_BPU(4, 8))
     // commit 数据通路：EXU → WBU（commit 通知在 WBU 内部）
     WBU_u.commit_info := EXU_u.commit_info
 
@@ -39,9 +38,10 @@ class ysyx_26030092 extends Module{
     val AXI4Arbiter_u = Module(new ysyx_26030092_AXI4Arbiter(2))
     io.slave.initSlave()
     
-    BPU_u.pc := IFU_u.bpu_pc
-    IFU_u.bpu_predict := BPU_u.predict_port
-    BPU_u.train_port := EXU_u.bpu_train
+    // BPU 关闭：不预测分支，顺序取指 + 由 flush 纠正（为了面积）
+    IFU_u.bpu_predict.valid := false.B
+    IFU_u.bpu_predict.take  := false.B
+    IFU_u.bpu_predict.next_pc := 0.U
 
 
     IFU_u.flush_icache := WBU_u.icache_flush
