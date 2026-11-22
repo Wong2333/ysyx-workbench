@@ -6,6 +6,7 @@ import npc.PMU._
 import npc.instEntry
 import npc.ysyxPrefix
 
+
 class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends Module{
 
     val icache = Module(new ysyx_26030092_icache)
@@ -24,7 +25,6 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     icache.flush_cache := icache_flush
     icache.flush := flush
 
-    // fifo
     val req_fifo = ysyxPrefix { Module(new Queue(UInt(30.W), 1, hasFlush = true)) }
     req_fifo.io.enq.valid := req.valid
     req.ready := req_fifo.io.enq.ready
@@ -36,7 +36,7 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     refill_unit.req.valid := false.B
     refill_unit.flush := flush
     refill_unit.req.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    val refilling = RegInit(false.B) // 标记miss的cache是否refilling
+    val refilling = RegInit(false.B)
 
     val miss = !icache.resp.hit & req_fifo.io.deq.valid
     val hit = icache.resp.hit & req_fifo.io.deq.valid
@@ -51,22 +51,19 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
       refilling := false.B
     }
 
-    // 逐拍写入：地址用 refill 单元锁存的那一行，避免队列变化时写错行
     icache.refill.addr := refill_unit.resp.addr
     icache.refill.data := refill_unit.resp.data
-    icache.refill.word := refill_unit.resp.word
     icache.refill.last := refill_unit.resp.last
     icache.refill.valid := refill_unit.resp.valid
 
     resp.bits.pc := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    resp.bits.inst := icache.resp.data // icache 直连 resp
+    resp.bits.inst := icache.resp.data
     resp.valid := hit
-    req_fifo.io.deq.ready := resp.ready & resp.valid // 出队条件
+    req_fifo.io.deq.ready := resp.ready & resp.valid
 
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port <> refill_unit.AXI4_port
 
-    // 错误处理
     val excp_code = Reg(UInt(32.W))
     val excp_trap = RegInit(false.B)
     when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){
@@ -79,7 +76,6 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     resp.bits.excp_code := 0.U
     resp.bits.is_excp := excp_trap
 
-    // flush
     req_fifo.io.flush.get := flush
     when(flush){
       resp.valid := false.B
