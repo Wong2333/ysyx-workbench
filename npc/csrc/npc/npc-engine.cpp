@@ -46,9 +46,9 @@ void eval() {
 }
 
 static void single_cycle() {
-    top.clock = ~top.clock;
+    top.clock = !top.clock;
     eval();
-    top.clock = ~top.clock;
+    top.clock = !top.clock;
     eval();
     cycle++;
     check_stop();
