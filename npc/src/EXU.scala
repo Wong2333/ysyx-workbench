@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import npc.EXUs._
 import npc.PMU._
-import npc.BPU.BPUTrainBundle
 
 object JumpOp extends ChiselEnum{
     val none, jump = Value
@@ -55,7 +54,6 @@ class ysyx_26030092_EXU extends Module{
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
-    val bpu_train = IO(Output(new BPUTrainBundle))
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
     val idu_out_valid = IO(Input(Bool()))
@@ -122,7 +120,6 @@ class ysyx_26030092_EXU extends Module{
 
     flush      := branch_u.flush
     redirectPC := branch_u.redirectPC
-    bpu_train  := branch_u.bpu_train
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)

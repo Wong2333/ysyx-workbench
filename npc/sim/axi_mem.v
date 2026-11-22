@@ -1,14 +1,4 @@
-// 行为级 AXI4 从机：PMEM + 内存映射设备（只用于仿真，不可综合）
-//
-// 地址映射（和 Core.scala 的 area、abstract-machine 的 npc.h 对齐）：
-//   0x0200_0000 - 0x0200_BFFF  CLINT        —— 在核内部处理，不会到 AXI 主口
-//   0x8000_0000 - 0x83FF_FFFF  PMEM (64MB)  —— 本模块的 mem 阵列
-//   0x1000_0000 - 0x1000_0003  UART THR     —— 写：按 wstrb 打印字符
-//   0x1000_0030 / +34          RTC 64 位    —— 读：uptime，单位 us
-//   其它                       未映射       —— 读返回 0，写忽略（首次告警）
-//
-// 注意：必须先按窗口译码，再在窗口内取偏移。绝对不能拿 addr[25:2] 当索引，
-// 那样 0x1000_0000 会和 0x8000_0000 落到同一个地址上。
+
 module axi_mem #(
   parameter [31:0] BASE  = 32'h8000_0000,
   parameter        WORDS = 16*1024*1024      // 64MB
@@ -32,15 +22,11 @@ module axi_mem #(
   // ---------------- PMEM ----------------
   reg [31:0] mem [0:WORDS-1];
 
-  // 存储器阵列上电内容：按 0 初始化（等价于 NEMU 的 calloc / DRAM 清零），
-  // 否则 $readmemh 没覆盖到的区域是 X，程序读 BSS 会直接算错
   integer zi;
   initial begin
     for (zi = 0; zi < WORDS; zi = zi + 1) mem[zi] = 32'h0;
   end
 
-  // ---------------- 设备地址译码 ----------------
-  // uptime：800MHz 下每 800 拍 = 1us
   reg [9:0]  cyc_frac  = 10'd0;
   reg [63:0] uptime_us = 64'd0;
   always @(posedge clock) begin
@@ -61,8 +47,6 @@ module axi_mem #(
   reg [31:0] w_data;  reg [3:0] w_strb;
   reg        warned = 1'b0;
 
-  // 必须用锁存后的 aw_addr 判断，不能用端口上的 awaddr：
-  // 写回阶段 awaddr 已经变成下一笔/空闲值
   wire aw_is_mem  = (aw_addr[31:26] == 6'b100000);   // 0x8000_0000..0x83FF_FFFF
   wire aw_is_uart = (aw_addr[31:2]  == 30'h0400_0000);   // 0x1000_0000..0x1000_0003
   wire aw_is_rtc  = (aw_addr[31:3]  == 29'h0200_0006);   // 0x1000_0030..0x1000_0037
@@ -71,7 +55,7 @@ module axi_mem #(
   assign wready  = !w_got  && !b_valid;
   assign bvalid  = b_valid;
   assign bresp   = 2'b00;
-  assign rresp   = 2'b00;   // 必须驱动：否则 iverilog 里是 z，|rresp 会算出 X
+  assign rresp   = 2'b00;
   assign bid     = aw_id;
 
   // ---------------- 读 ----------------

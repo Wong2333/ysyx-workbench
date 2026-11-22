@@ -2,13 +2,11 @@ package npc
 
 import chisel3._
 import chisel3.util._
-import npc.BPU.BPUTrainBundle
 
 class ysyx_26030092_BranchUnit extends Module{
     val flush      = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val dnpc       = IO(Output(UInt(32.W)))
-    val bpu_train  = IO(Output(new BPUTrainBundle))
 
     val pc        = IO(Input(UInt(32.W)))
     val alu       = IO(Input(UInt(32.W)))
@@ -26,13 +24,16 @@ class ysyx_26030092_BranchUnit extends Module{
     val fire     = IO(Input(Bool()))
     val lsu_trap = IO(Input(Bool()))
 
+    // 面积优化：bge/bgeu 用 blt/bltu 取反，共用比较器
+    val blt  = rs1.asSInt < rs2.asSInt
+    val bltu = rs1 < rs2
     val branch_cond = MuxLookup(branch_op, false.B)(Seq(
         BranchOp.beq  -> (rs1 === rs2),
         BranchOp.bne  -> (rs1 =/= rs2),
-        BranchOp.blt  -> (rs1.asSInt <  rs2.asSInt),
-        BranchOp.bge  -> (rs1.asSInt >= rs2.asSInt),
-        BranchOp.bltu -> (rs1 <  rs2),
-        BranchOp.bgeu -> (rs1 >= rs2)))
+        BranchOp.blt  -> blt,
+        BranchOp.bge  -> !blt,
+        BranchOp.bltu -> bltu,
+        BranchOp.bgeu -> !bltu))
 
     val is_branch = branch_op =/= BranchOp.none
     val is_jump   = jump_op === JumpOp.jump
@@ -53,11 +54,6 @@ class ysyx_26030092_BranchUnit extends Module{
     shadow_pc.io.pc_we   := jump
     shadow_pc.io.pc_next := next_pc
 
-    bpu_train.is_jal := is_jump
-    bpu_train.pc     := shadow_pc.io.pc(31,2)
-    bpu_train.valid  := (is_branch || is_jump) && fire && !lsu_trap
-    bpu_train.taken  := taken
-    bpu_train.target := next_pc(31,2)
 
     flush      := (valid && !pc_hit) || lsu_trap
     redirectPC := Mux(lsu_trap, mtvec, shadow_pc.io.pc)

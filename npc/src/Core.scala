@@ -5,7 +5,6 @@ import npc.AXI._
 // import npc.Xbar.{Arbiter,Xbar}
 import npc.device._
 import npc.PMU._
-import npc.BPU._
 
 class ysyx_26030092 extends Module{
 
@@ -13,9 +12,6 @@ class ysyx_26030092 extends Module{
                     (0x80000000L, 0x8fffffffL))
 
     val io = IO(new Bundle{
-        // val pc = Output(UInt(32.W))
-        // val inst = Output(UInt(32.W))
-        // val WriteBack = Output(Bool())
         val interrupt = Input(Bool())
         val master = new AXI4Bundle()
         val slave = Flipped(new AXI4Bundle())
@@ -26,22 +22,15 @@ class ysyx_26030092 extends Module{
     val IDU_u = Module(new ysyx_26030092_IDU())
     val EXU_u = Module(new ysyx_26030092_EXU())
     val WBU_u = Module(new ysyx_26030092_WBU())
-    val BPU_u = Module(new ysyx_26030092_BPU(4, 8))
-    // commit 数据通路：EXU → WBU（commit 通知在 WBU 内部）
+
     WBU_u.commit_info := EXU_u.commit_info
 
-    // val Arbiter_u = Module(new Arbiter(2))
-    // val Xbar_u = Module(new Xbar(3,area))
-    // // val MemUnit_u = Module(new MemUnit())
-    // val uart_u = Module(new uart)
+
     val CLINT_u = Module(new ysyx_26030092_CLINT())
     val CLINT_AXI4Router_u = Module(new ysyx_26030092_CLINT_AXI4Router())
     val AXI4Arbiter_u = Module(new ysyx_26030092_AXI4Arbiter(2))
     io.slave.initSlave()
     
-    BPU_u.pc := IFU_u.bpu_pc
-    IFU_u.bpu_predict := BPU_u.predict_port
-    BPU_u.train_port := EXU_u.bpu_train
 
 
     IFU_u.flush_icache := WBU_u.icache_flush

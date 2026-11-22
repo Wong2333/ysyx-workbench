@@ -3,16 +3,13 @@ import chisel3._
 import chisel3.util._
 import npc.AXI._
 import npc.PMU._
-import chisel3.experimental.dataview.DataViewable
 import npc.instEntry
 import npc.ysyxPrefix
 
-class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends Module{
 
-    val icache = Module(new ysyx_26030092_icache_reg(block_size, block_num))
-    icache.refill.valid := false.B
-    icache.refill.addr := DontCare
-    icache.refill.block := DontCare
+class ysyx_26030092_icacheMainPipe_reg extends Module{
+
+    val icache = Module(new ysyx_26030092_icache)
 
     val flush = IO(Input(Bool()))
 
@@ -28,21 +25,18 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     icache.flush_cache := icache_flush
     icache.flush := flush
 
-    // fifo
-    val req_fifo = ysyxPrefix { Module(new Queue(UInt(30.W), 2, hasFlush = true)) }
+    val req_fifo = ysyxPrefix { Module(new Queue(UInt(30.W), 1, hasFlush = true)) } // req fifo
     req_fifo.io.enq.valid := req.valid
     req.ready := req_fifo.io.enq.ready
     req_fifo.io.enq.bits := req.addr(31,2)
 
-    icache.req.addr := Mux(req_fifo.io.deq.valid, Cat(req_fifo.io.deq.bits, 0.U(2.W)), 0.U)
+    icache.req.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
 
-
-
-    val refill_unit = Module(new ysyx_26030092_icacheRefillUnit_reg(block_size))
-    refill_unit.req.valid := false.B
+    // refill
+    val refill_unit = Module(new ysyx_26030092_icacheRefillUnit_reg)
     refill_unit.flush := flush
     refill_unit.req.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    val refilling = RegInit(false.B) // 标记miss的cache是否refilling
+    val refilling = RegInit(false.B)
 
     val miss = !icache.resp.hit & req_fifo.io.deq.valid
     val hit = icache.resp.hit & req_fifo.io.deq.valid
@@ -53,29 +47,26 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     when(refill_unit.req.valid & refill_unit.req.ready){
       refilling := true.B
     }
-    when(refill_unit.resp.valid){
+    when(refill_unit.resp.valid && refill_unit.resp.last){
       refilling := false.B
     }
 
-    val refill_match = refill_unit.resp.addr(31,2) === req_fifo.io.deq.bits
-    dontTouch(refill_match)    
-    icache.refill.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    icache.refill.block := refill_unit.resp.block
-    icache.refill.valid := refill_unit.resp.valid && refill_match // refill 需要比较地址是否正确
-
+    icache.refill.addr := refill_unit.resp.addr
+    icache.refill.data := refill_unit.resp.data
+    icache.refill.last := refill_unit.resp.last
+    icache.refill.valid := refill_unit.resp.valid
 
     resp.bits.pc := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    resp.bits.inst := icache.resp.data // icache 直连 resp
+    resp.bits.inst := icache.resp.data
     resp.valid := hit
-    req_fifo.io.deq.ready := resp.ready & resp.valid // 出队条件
+    req_fifo.io.deq.ready := resp.ready & resp.valid
 
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port <> refill_unit.AXI4_port
 
-    // 错误处理
     val excp_code = Reg(UInt(32.W))
     val excp_trap = RegInit(false.B)
-    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){
+    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){// 错误处理
       excp_code := 0.U
       excp_trap := true.B
     }
@@ -85,7 +76,6 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     resp.bits.excp_code := 0.U
     resp.bits.is_excp := excp_trap
 
-    // flush
     req_fifo.io.flush.get := flush
     when(flush){
       resp.valid := false.B
@@ -94,5 +84,6 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
       req_fifo.io.enq.valid := false.B
       req_fifo.io.deq.ready := false.B
       refilling := false.B
+      excp_trap := false.B
     }
 }

@@ -6,7 +6,6 @@ module tb_npc;
   reg reset = 1'b1;
   always #0.625 clock = ~clock;          // 800MHz
 
-  // ---- AXI master <-> 存储器 ----
   wire        m_awready, m_awvalid, m_wready, m_wvalid, m_bvalid, m_bready;
   wire        m_arready, m_arvalid, m_rvalid, m_rready;
   wire [31:0] m_awaddr, m_wdata, m_araddr, m_rdata;
@@ -16,7 +15,6 @@ module tb_npc;
   wire [1:0]  m_awburst, m_arburst, m_bresp, m_rresp;
   wire        m_wlast, m_rlast;
 
-  // ---- 未被使用的 AXI slave 口（作为从机接收，全部空闲） ----
   reg  s_awvalid = 1'b0, s_wvalid = 1'b0, s_bready = 1'b0, s_arvalid = 1'b0, s_rready = 1'b0;
   reg  [31:0] s_awaddr = 0, s_wdata = 0, s_araddr = 0;
   reg  [3:0]  s_awid = 0, s_wstrb = 0, s_arid = 0;
@@ -89,13 +87,12 @@ module tb_npc;
     #20 reset = 1'b0;
   end
 
-  // ---- 结束条件 ----
+
 `ifndef NETLIST_SIM
-  // RTL 仿真：直接看 WBU 的 ebreak（层次引用在网表里不存在，所以网表仿真用下面的判据）
   integer cycles = 0;
   integer max_cycles = 2000000;
   initial begin
-    void'($value$plusargs("CYCLES=%d", max_cycles));   // 运行时覆盖周期上限
+    void'($value$plusargs("CYCLES=%d", max_cycles));
   end
   always @(posedge clock) begin
     cycles <= cycles + 1;
@@ -110,7 +107,7 @@ module tb_npc;
     end
   end
 `else
-  // 网表仿真：层次被 yosys 打平，看不到内部信号；用"AXI 长时间无活动"判断程序已停
+
   integer cycles = 0;
   integer idle = 0;
   integer max_cycles = 2000000;
