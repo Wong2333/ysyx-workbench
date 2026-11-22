@@ -51,10 +51,10 @@ void eval(){
 }
 uint64_t cycle = 0;
 static void single_cycle() {
-    top.clock = ~top.clock;
+    top.clock = !top.clock;
     eval();
 
-    top.clock = ~top.clock;
+    top.clock = !top.clock;
     eval();
     nvboard_update();
     cycle++;
