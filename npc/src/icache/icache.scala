@@ -24,8 +24,7 @@ class ysyx_26030092_icache extends Module {
     val flush_cache = IO(Input(Bool()))
     val flush       = IO(Input(Bool()))
 
-    val line0 = Reg(Vec(4, UInt(32.W)))
-    val line1 = Reg(Vec(4, UInt(32.W)))
+    val data       = Reg(Vec(8, UInt(32.W)))
     val tag        = Reg(Vec(2, UInt(27.W)))
     val line_valid = RegInit(VecInit(Seq.fill(2)(false.B)))
 
@@ -36,15 +35,15 @@ class ysyx_26030092_icache extends Module {
     dontTouch(offset)
     dontTouch(cur_tag)
 
-    resp.data := Mux(index === 0.U, line0(offset), line1(offset))
+    val line = VecInit.tabulate(4)(i => data(index * 4.U + i.U))
+    resp.data := line(offset)
     resp.hit  := (cur_tag === tag(index)) && line_valid(index)
 
     val refill_offset = refill.addr(3, 2)
     val refill_index  = refill.addr(4)
     val refill_tag    = refill.addr(31, 5)
     when(refill.valid) {
-        when(refill_index === 0.U) { line0(refill_offset) := refill.data }
-        .otherwise                 { line1(refill_offset) := refill.data }
+        data(refill_index * 4.U + refill_offset) := refill.data
         when(refill.last) {
             tag(refill_index)        := refill_tag
             line_valid(refill_index) := true.B
