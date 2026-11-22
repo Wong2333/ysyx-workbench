@@ -4,9 +4,12 @@ import chisel3._
 import chisel3.util._
 import npc.AXI._
 import npc.PMU._
-import scala.annotation.varargs
 
+// 面积优化版 refill：不缓存整块（不再有 block_reg），按 AXI 每一拍直接给 icache 写一个字。
 class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
+    val words = block_size / 4
+    val word_bits = math.max(1, log2Ceil(math.max(2, words)))
+
     val flush = IO(Input(Bool()))
     val req = IO(new Bundle {
         val addr = Input(UInt(32.W))
@@ -15,13 +18,12 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
     })
 
     val resp = IO(new Bundle {
-        val block = Output(UInt((block_size*8).W))
-        val addr = Output(UInt(32.W))
+        val data  = Output(UInt(32.W))
+        val word  = Output(UInt(word_bits.W))
+        val last  = Output(Bool())
+        val addr  = Output(UInt(32.W))
         val valid = Output(Bool())
     })
-    resp.block := DontCare
-    resp.valid := false.B
-    req.ready := false.B
 
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port.initMaster()
@@ -30,21 +32,26 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
     val state = RegInit(s_idle)
     PerfCounter("icache_refill_busy") := (state =/= s_idle)
     PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
+
     val req_addr_reg = Reg(UInt(32.W))
+    val beat_cnt = RegInit(0.U(word_bits.W))
 
     val block_bits = log2Ceil(block_size)
     val block_addr = Cat(req_addr_reg(31,block_bits),0.U(block_bits.W))
-    
-    val beats = block_size / 4 //需要beats拍传回数据
+    val beats = words
 
-    val block_reg = Reg(UInt((block_size*8).W))
-    val block_valid = RegInit(false.B)
+    resp.data  := AXI4_port.rdata
+    resp.word  := beat_cnt
+    resp.last  := AXI4_port.rlast
+    resp.addr  := req_addr_reg
+    resp.valid := (state === s_wait_mem_data) && AXI4_port.rvalid
 
     switch(state){
         is(s_idle){
-            req.ready := !block_valid
+            req.ready := true.B
             when(req.valid & req.ready){
                 req_addr_reg := req.addr
+                beat_cnt := 0.U
                 state := s_wait_mem_free
             }
         }
@@ -61,31 +68,16 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
         is(s_wait_mem_data){
             when(AXI4_port.rvalid){
                 AXI4_port.rready := true.B
-                if(block_size > 4){
-                    block_reg := Cat(AXI4_port.rdata, block_reg(block_size*8 - 1, 32))
-                }else{
-                    block_reg := AXI4_port.rdata
-                }
-
+                beat_cnt := beat_cnt + 1.U
                 when(AXI4_port.rlast){
                     state := s_idle
-                    block_valid := true.B
                 }
             }
         }
     }
 
-    resp.addr := req_addr_reg
-    resp.block := block_reg
-    resp.valid := block_valid
-
-    when(block_valid){ 
-        block_valid := false.B 
-    }
-
     when(flush){
-        resp.valid := false.B
-        block_valid := false.B
+        state := s_idle
+        beat_cnt := 0.U
     }
-
 }

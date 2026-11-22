@@ -12,7 +12,9 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     val icache = Module(new ysyx_26030092_icache_reg(block_size, block_num))
     icache.refill.valid := false.B
     icache.refill.addr := DontCare
-    icache.refill.block := DontCare
+    icache.refill.data := DontCare
+    icache.refill.word := DontCare
+    icache.refill.last := false.B
 
     val flush = IO(Input(Bool()))
 
@@ -53,15 +55,16 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     when(refill_unit.req.valid & refill_unit.req.ready){
       refilling := true.B
     }
-    when(refill_unit.resp.valid){
+    when(refill_unit.resp.valid && refill_unit.resp.last){
       refilling := false.B
     }
 
-    val refill_match = refill_unit.resp.addr(31,2) === req_fifo.io.deq.bits
-    dontTouch(refill_match)    
-    icache.refill.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
-    icache.refill.block := refill_unit.resp.block
-    icache.refill.valid := refill_unit.resp.valid && refill_match // refill 需要比较地址是否正确
+    // 逐拍写入：地址用 refill 单元锁存的那一行，避免队列变化时写错行
+    icache.refill.addr := refill_unit.resp.addr
+    icache.refill.data := refill_unit.resp.data
+    icache.refill.word := refill_unit.resp.word
+    icache.refill.last := refill_unit.resp.last
+    icache.refill.valid := refill_unit.resp.valid
 
 
     resp.bits.pc := Cat(req_fifo.io.deq.bits, 0.U(2.W))
