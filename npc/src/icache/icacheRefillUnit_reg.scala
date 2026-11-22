@@ -46,6 +46,14 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
     resp.addr  := req_addr_reg
     resp.valid := (state === s_wait_mem_data) && AXI4_port.rvalid
 
+    req.ready := false.B
+    AXI4_port.arvalid := false.B
+    AXI4_port.araddr := 0.U
+    AXI4_port.arlen := 0.U
+    AXI4_port.arsize := 0.U
+    AXI4_port.arburst := 0.U
+    AXI4_port.rready := false.B
+
     switch(state){
         is(s_idle){
             req.ready := true.B
