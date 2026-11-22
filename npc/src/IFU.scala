@@ -55,8 +55,6 @@ class ysyx_26030092_IFU extends Module{
 
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
     PC_reg.io.pc_4 := icahce_main_pipe_fire
-    
-    // 无分支预测：顺序取指，跳转由 flush 纠正
     PC_reg.io.pc_we := false.B
     PC_reg.io.pc_next := 0.U
 
@@ -75,6 +73,7 @@ class ysyx_26030092_IFU extends Module{
     val ebreak = Module(new ysyx_26030092_EbreakBlackBox())
     ebreak.io.ebreak_trap := false.B
     when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){
+        printf("AXI4 error\n")
         ebreak.io.ebreak_trap := true.B
     }
 }
