@@ -3,7 +3,6 @@ import chisel3._
 import chisel3.util._
 import npc.AXI._
 import npc.PMU._
-import chisel3.experimental.dataview.DataViewable
 import npc.instEntry
 import npc.ysyxPrefix
 

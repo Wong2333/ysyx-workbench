@@ -2,13 +2,11 @@ package npc
 
 import chisel3._
 import chisel3.util._
-import npc.BPU.BPUTrainBundle
 
 class ysyx_26030092_BranchUnit extends Module{
     val flush      = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val dnpc       = IO(Output(UInt(32.W)))
-    val bpu_train  = IO(Output(new BPUTrainBundle))
 
     val pc        = IO(Input(UInt(32.W)))
     val alu       = IO(Input(UInt(32.W)))
@@ -56,11 +54,6 @@ class ysyx_26030092_BranchUnit extends Module{
     shadow_pc.io.pc_we   := jump
     shadow_pc.io.pc_next := next_pc
 
-    bpu_train.is_jal := is_jump
-    bpu_train.pc     := shadow_pc.io.pc(31,2)
-    bpu_train.valid  := (is_branch || is_jump) && fire && !lsu_trap
-    bpu_train.taken  := taken
-    bpu_train.target := next_pc(31,2)
 
     flush      := (valid && !pc_hit) || lsu_trap
     redirectPC := Mux(lsu_trap, mtvec, shadow_pc.io.pc)

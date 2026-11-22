@@ -5,7 +5,6 @@ import npc.AXI._
 // import npc.Xbar.{Arbiter,Xbar}
 import npc.device._
 import npc.PMU._
-import npc.BPU._
 
 class ysyx_26030092 extends Module{
 
@@ -38,10 +37,6 @@ class ysyx_26030092 extends Module{
     val AXI4Arbiter_u = Module(new ysyx_26030092_AXI4Arbiter(2))
     io.slave.initSlave()
     
-    // BPU 关闭：不预测分支，顺序取指 + 由 flush 纠正（为了面积）
-    IFU_u.bpu_predict.valid := false.B
-    IFU_u.bpu_predict.take  := false.B
-    IFU_u.bpu_predict.next_pc := 0.U
 
 
     IFU_u.flush_icache := WBU_u.icache_flush
