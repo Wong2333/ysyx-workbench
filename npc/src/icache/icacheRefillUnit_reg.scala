@@ -6,7 +6,7 @@ import npc.AXI._
 import npc.PMU._
 
 
-class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
+class ysyx_26030092_icacheRefillUnit_reg extends Module{
     val flush = IO(Input(Bool()))
     val req = IO(new Bundle {
         val addr  = Input(UInt(32.W))
@@ -26,8 +26,6 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
 
     val s_idle :: s_wait_mem_free :: s_wait_mem_data :: Nil = Enum(3)
     val state = RegInit(s_idle)
-    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
-    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 
     val req_addr_reg = Reg(UInt(32.W))
     val beat_cnt     = RegInit(0.U(2.W))
@@ -37,7 +35,7 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
     resp.data  := AXI4_port.rdata
     resp.last  := AXI4_port.rlast
     resp.addr  := block_addr + (beat_cnt << 2)
-    resp.valid := (state === s_wait_mem_data) && AXI4_port.rvalid
+    resp.valid := false.B
 
     req.ready         := false.B
     AXI4_port.arvalid := false.B
@@ -69,6 +67,7 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
         is(s_wait_mem_data){
             when(AXI4_port.rvalid){
                 AXI4_port.rready := true.B
+                resp.valid := true.B
                 beat_cnt := beat_cnt + 1.U
                 when(AXI4_port.rlast){
                     state := s_idle
@@ -76,4 +75,7 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
             }
         }
     }
+
+    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
+    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 }

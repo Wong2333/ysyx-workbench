@@ -63,7 +63,6 @@ class ysyx_26030092_WBU extends Module{
     ExceptionPort := 0.U.asTypeOf(new ExceptionInfoBundle)
     icache_flush := false.B
 
-    // 写回数据已在 EXU 的 mem_pending 锁存，这里 fire 拍直出（不再二次锁存）
     when(in.fire){
         WriteRegPort.waddr := in.bits.RegWaddr
         WriteRegPort.wdata := in.bits.RegWdata
@@ -106,9 +105,7 @@ class ysyx_26030092_WBU extends Module{
     // 访存错误 / ebreak 指令：仿真终止（BAD TRAP）
     val ebreak = Module(new ysyx_26030092_EbreakBlackBox())
     ebreak.io.ebreak_trap := false.B
-    // when(lsu_out.fire && lsu_out.bits.error === true.B){
-    //     ebreak.io.ebreak_trap := true.B
-    // }
+
     when(ExceptionPort.isTrap && in.fire){
         when(ExceptionPort.Exception_Code === 0.U || ExceptionPort.Exception_Code === 3.U){
             ebreak.io.ebreak_trap := true.B

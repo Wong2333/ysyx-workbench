@@ -7,7 +7,7 @@ import npc.instEntry
 import npc.ysyxPrefix
 
 
-class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends Module{
+class ysyx_26030092_icacheMainPipe_reg extends Module{
 
     val icache = Module(new ysyx_26030092_icache)
 
@@ -25,15 +25,15 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
     icache.flush_cache := icache_flush
     icache.flush := flush
 
-    val req_fifo = ysyxPrefix { Module(new Queue(UInt(30.W), 1, hasFlush = true)) }
+    val req_fifo = ysyxPrefix { Module(new Queue(UInt(30.W), 1, hasFlush = true)) } // req fifo
     req_fifo.io.enq.valid := req.valid
     req.ready := req_fifo.io.enq.ready
     req_fifo.io.enq.bits := req.addr(31,2)
 
-    icache.req.addr := Mux(req_fifo.io.deq.valid, Cat(req_fifo.io.deq.bits, 0.U(2.W)), 0.U)
+    icache.req.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
 
-    val refill_unit = Module(new ysyx_26030092_icacheRefillUnit_reg(block_size))
-    refill_unit.req.valid := false.B
+    // refill
+    val refill_unit = Module(new ysyx_26030092_icacheRefillUnit_reg)
     refill_unit.flush := flush
     refill_unit.req.addr := Cat(req_fifo.io.deq.bits, 0.U(2.W))
     val refilling = RegInit(false.B)
@@ -66,7 +66,7 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
 
     val excp_code = Reg(UInt(32.W))
     val excp_trap = RegInit(false.B)
-    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){
+    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){// 错误处理
       excp_code := 0.U
       excp_trap := true.B
     }
@@ -84,5 +84,6 @@ class ysyx_26030092_icacheMainPipe_reg(block_size :Int, block_num :Int) extends 
       req_fifo.io.enq.valid := false.B
       req_fifo.io.deq.ready := false.B
       refilling := false.B
+      excp_trap := false.B
     }
 }

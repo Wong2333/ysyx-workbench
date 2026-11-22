@@ -28,7 +28,7 @@ class ysyx_26030092_icache extends Module {
     val tag        = Reg(Vec(2, UInt(27.W)))
     val line_valid = RegInit(VecInit(Seq.fill(2)(false.B)))
 
-    val offset  = req.addr(3, 2)
+    val offset  = req.addr(3, 2) // req addr
     val index   = req.addr(4)
     val cur_tag = req.addr(31, 5)
     dontTouch(index)
@@ -39,7 +39,7 @@ class ysyx_26030092_icache extends Module {
     resp.data := line(offset)
     resp.hit  := (cur_tag === tag(index)) && line_valid(index)
 
-    val refill_offset = refill.addr(3, 2)
+    val refill_offset = refill.addr(3, 2) // refill addr
     val refill_index  = refill.addr(4)
     val refill_tag    = refill.addr(31, 5)
     when(refill.valid) {
