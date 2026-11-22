@@ -43,7 +43,7 @@ class ysyx_26030092_icache extends Module {
     val refill_index  = refill.addr(4)
     val refill_tag    = refill.addr(31, 5)
     when(refill.valid) {
-        data(refill_index * 4.U + refill_offset) := refill.data
+        data(Cat(refill_index, refill_offset)) := refill.data
         when(refill.last) {
             tag(refill_index)        := refill_tag
             line_valid(refill_index) := true.B

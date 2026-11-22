@@ -8,8 +8,12 @@ class ysyx_26030092_CLINT extends Module{
     val AXI4_port = IO(Flipped(new AXI4Bundle))
 
     AXI4_port.initSlave()
-    val mtime = RegInit(0.U(64.W))
-    mtime := mtime + 1.U
+    val mtime_lo = RegInit(0.U(32.W))
+    val mtime_hi = RegInit(0.U(32.W))
+    mtime_lo := mtime_lo + 1.U
+    when(mtime_lo === "hffffffff".U){
+        mtime_hi := mtime_hi + 1.U
+    }
 
     val out_reg = Reg(UInt(32.W))
 
@@ -21,12 +25,12 @@ class ysyx_26030092_CLINT extends Module{
             when(AXI4_port.arvalid){
                 when(AXI4_port.araddr === (0x02000000L + 0XBFF8).U){
                     AXI4_port.arready := true.B
-                    out_reg := mtime(31,0)
+                    out_reg := mtime_lo
                     status := s_busy
                 }
                 when(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U){
                     AXI4_port.arready := true.B
-                    out_reg := mtime(63,32)
+                    out_reg := mtime_hi
                     status := s_busy
                 }
             }
