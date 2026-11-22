@@ -26,6 +26,8 @@ SECTIONS {
     _text_vma_start = .;
     *(.text*)
     *(.rodata*)
+    *(.srodata*)
+    . = ALIGN(4);
     _text_vma_end = .;
   } > sdram AT> flash
   _text_lma_start = LOADADDR(.text);
@@ -34,6 +36,7 @@ SECTIONS {
     _data_vma_start = .;
     *(.data*)
     *(.sdata*)
+    . = ALIGN(4);
     _data_vma_end = .;
   } > sdram AT> flash
   _data_lma_start = LOADADDR(.data);
