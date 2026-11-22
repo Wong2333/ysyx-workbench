@@ -1,0 +1,46 @@
+From 96cc743905a5059d98925cf0681390de32bbb0e0 Mon Sep 17 00:00:00 2001
+From: wangjingmin <3201884732@qq.com>
+Date: Sun, 22 Nov 2026 12:25:39 +0800
+Subject: [PATCH] =?UTF-8?q?integrate-am-apps:=20=E8=B7=B3=E8=BF=87?=
+ =?UTF-8?q?=E7=BC=BA=E5=A4=B1/=E6=9E=84=E5=BB=BA=E5=A4=B1=E8=B4=A5?=
+ =?UTF-8?q?=E7=9A=84=20app?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CI 里没有 fceux-am（顶层仓库没跟踪它），脚本在 fceux 上抛
+FileNotFoundError，导致 am-apps.c / am-apps.mk 留在半成品状态。
+改成缺目录、make 失败、没有 build 目录时打印一行跳过。
+---
+ bsp/abstract-machine/integrate-am-apps.py | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/bsp/abstract-machine/integrate-am-apps.py b/bsp/abstract-machine/integrate-am-apps.py
+index 8968df387..2066e95b7 100644
+--- a/bsp/abstract-machine/integrate-am-apps.py
++++ b/bsp/abstract-machine/integrate-am-apps.py
+@@ -48,10 +48,19 @@ def read_lib_symbols(lib):
+ 
+ def integrate(app_dir):
+     app_name = app_dir.name.replace("-", "_")
+-    os.system(f"make -j ARCH={ARCH} -C {str(app_dir)}")
++    if not app_dir.is_dir():
++        print(f"[integrate] skip missing app: {app_dir}")
++        return
++    if os.system(f"make -j ARCH={ARCH} -C {str(app_dir)}") != 0:
++        print(f"[integrate] skip app that failed to build: {app_dir}")
++        return
++    app_build_dir = app_dir / "build" / ARCH
++    if not app_build_dir.is_dir():
++        print(f"[integrate] skip app without build dir: {app_dir}")
++        return
+     dst = Path("build") / ARCH / "am-apps" / app_name
+     dst.mkdir(parents=True, exist_ok=True)
+-    shutil.copytree(app_dir / "build" / ARCH / "", dst, dirs_exist_ok=True)
++    shutil.copytree(app_build_dir, dst, dirs_exist_ok=True)
+     objs = dst.rglob("*.o")
+     redefine_sym_file = "redefine_sym.txt"
+     redefine_sym_fp = open(redefine_sym_file, "w")
+-- 
+2.34.1
+

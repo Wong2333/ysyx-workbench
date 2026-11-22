@@ -84,7 +84,10 @@ void ebreak() {
 }
 void my_assert(bool cond);
 void invalid_instruction(int pc,int inst){
-    printf("invalid_instruction: 0x%x at 0x%x\n",(uint32_t)inst,(uint32_t)pc);
+    extern uint64_t cycle;
+    extern uint64_t inst_counter;
+    printf("invalid_instruction: 0x%x at 0x%x (cycle=%llu, committed=%llu)\n",
+           (uint32_t)inst,(uint32_t)pc,(unsigned long long)cycle,(unsigned long long)inst_counter);
     close_tfp();
     my_assert(0);
 }
