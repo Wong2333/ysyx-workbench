@@ -47,7 +47,7 @@ class ysyx_26030092_IFU extends Module{
     val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 2, hasFlush = true)) }
     inst_queue.io.flush.get := flush
     
-    val icache_main_pipe = Module(new ysyx_26030092_icacheMainPipe_reg(16,8))
+    val icache_main_pipe = Module(new ysyx_26030092_icacheMainPipe_reg(16,4))
     icache_main_pipe.AXI4_port <> AXI4_port
     icache_main_pipe.icache_flush := flush_icache
     icache_main_pipe.req.valid := ~flush
