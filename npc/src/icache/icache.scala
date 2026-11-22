@@ -35,8 +35,8 @@ class ysyx_26030092_icache extends Module {
     dontTouch(offset)
     dontTouch(cur_tag)
 
-    val line = VecInit.tabulate(4)(i => data(index * 4.U + i.U))
-    resp.data := line(offset)
+    // val line = VecInit.tabulate(4)(i => data(index * 4.U + i.U))
+    resp.data := data(Cat(index, offset))
     resp.hit  := (cur_tag === tag(index)) && line_valid(index)
 
     val refill_offset = refill.addr(3, 2) // refill addr
