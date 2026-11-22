@@ -84,8 +84,6 @@ class ysyx_26030092_icacheRefillUnit_reg(block_size :Int) extends Module{
         }
     }
 
-    when(flush){
-        state := s_idle
-        beat_cnt := 0.U
-    }
+    // 注意：flush 不能中途打断 AXI 读突发，否则从设备会一直等 rready 导致死锁。
+    // 突发照常收完（数据写进 cache 无害），下一次请求在 idle 才被接受。
 }
