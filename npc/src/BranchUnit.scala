@@ -26,13 +26,16 @@ class ysyx_26030092_BranchUnit extends Module{
     val fire     = IO(Input(Bool()))
     val lsu_trap = IO(Input(Bool()))
 
+    // 面积优化：bge/bgeu 用 blt/bltu 取反，共用比较器
+    val blt  = rs1.asSInt < rs2.asSInt
+    val bltu = rs1 < rs2
     val branch_cond = MuxLookup(branch_op, false.B)(Seq(
         BranchOp.beq  -> (rs1 === rs2),
         BranchOp.bne  -> (rs1 =/= rs2),
-        BranchOp.blt  -> (rs1.asSInt <  rs2.asSInt),
-        BranchOp.bge  -> (rs1.asSInt >= rs2.asSInt),
-        BranchOp.bltu -> (rs1 <  rs2),
-        BranchOp.bgeu -> (rs1 >= rs2)))
+        BranchOp.blt  -> blt,
+        BranchOp.bge  -> !blt,
+        BranchOp.bltu -> bltu,
+        BranchOp.bgeu -> !bltu))
 
     val is_branch = branch_op =/= BranchOp.none
     val is_jump   = jump_op === JumpOp.jump

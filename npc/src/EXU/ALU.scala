@@ -35,41 +35,24 @@ class ysyx_26030092_ALU extends Module{
         val src2 = UInt(32.W)
     }))
     val out = IO(Output(UInt(32.W)))
+    // 面积优化：add/sub/slt/sltu 共用一个 32 位加法器（多一拍 mux，换一套加法器）
+    val is_sub = (in.ctl === ALUOp.sub) || (in.ctl === ALUOp.slt) || (in.ctl === ALUOp.sltu)
+    val op2    = Mux(is_sub, ~in.src2, in.src2)
+    val diff   = in.src1 +& op2 + is_sub.asUInt   // 33 位，bit32 是进位/借位
+
     out := DontCare
     switch(in.ctl){
-        is(ALUOp.add){
-            out := in.src1 + in.src2
-        }
-        is(ALUOp.sub){
-            out := in.src1 - in.src2
-        }
-        is(ALUOp.sltu){
-            out := in.src1 < in.src2
-        }
-        is(ALUOp.slt){
-            out := in.src1.asSInt < in.src2.asSInt
-        }
-        is(ALUOp.and){
-            out := in.src1 & in.src2
-        }
-        is(ALUOp.xor){
-            out := in.src1 ^ in.src2
-        }
-        is(ALUOp.or){
-            out := in.src1 | in.src2
-        }
-        is(ALUOp.lui){
-            out := in.src2
-        }
-        is(ALUOp.sll){
-            out := in.src1 << in.src2(4,0)
-        }
-        is(ALUOp.srl){
-            out := in.src1 >> in.src2(4,0)
-        }
-        is(ALUOp.sra){
-            out := (in.src1.asSInt >> in.src2(4,0)).asUInt
-        }
+        is(ALUOp.add) { out := diff(31,0) }
+        is(ALUOp.sub) { out := diff(31,0) }
+        is(ALUOp.sltu){ out := (!diff(32)).asUInt }   // 借位=1 表示 src1 < src2
+        is(ALUOp.slt) { out := Mux(in.src1(31) =/= in.src2(31), in.src1(31), diff(31)).asUInt }
+        is(ALUOp.and){ out := in.src1 & in.src2 }
+        is(ALUOp.xor){ out := in.src1 ^ in.src2 }
+        is(ALUOp.or) { out := in.src1 | in.src2 }
+        is(ALUOp.lui){ out := in.src2 }
+        is(ALUOp.sll){ out := in.src1 << in.src2(4,0) }
+        is(ALUOp.srl){ out := in.src1 >> in.src2(4,0) }
+        is(ALUOp.sra){ out := (in.src1.asSInt >> in.src2(4,0)).asUInt }
     }
 }
 
