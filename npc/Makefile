@@ -103,60 +103,9 @@ $(CORE): $(CHISEL_SRC) $(RESOURCES)
 $(PERF_NAMES_H): $(CORE) scripts/gen_perf_names.py
 	python3 scripts/gen_perf_names.py $(BUILD_DIR) $@
 
-# 四值仿真
-IVERILOG ?= iverilog
-VVP ?= vvp
-SIM_DIR = $(BUILD_DIR)/sim
-SIM_HEX = $(SIM_DIR)/img.hex
-SIM_CYCLES ?= 8000000
-IVERILOG_FLAGS = -g2012 -DSYNTHESIS -DNPC
+include scripts/sim-iverilog.mk
 
-$(SIM_HEX): FORCE
-	@test -n "$(IMG)" || (echo "用法: make sim-iverilog IMG=xxx.bin" && exit 1)
-	@mkdir -p $(SIM_DIR)
-	python3 scripts/bin2hex.py $(IMG) $@
-FORCE:
-
-$(SIM_DIR)/tb.vvp: $(CORE) sim/tb_npc.v sim/axi_mem.v
-	@mkdir -p $(SIM_DIR)
-	$(IVERILOG) $(IVERILOG_FLAGS) -s tb_npc -o $@ $(CORE) sim/axi_mem.v sim/tb_npc.v
-
-sim-iverilog: $(SIM_HEX) $(SIM_DIR)/tb.vvp
-	$(VVP) $(SIM_DIR)/tb.vvp +HEX=$(CURDIR)/$(SIM_HEX) +CYCLES=$(SIM_CYCLES)
-
-# 网表仿真
-YOSYS_STA_HOME ?= /home/wjm/yosys-sta
-CELLS ?= $(YOSYS_STA_HOME)/pdk/nangate45/sim/cells.v
-NET_TB = $(SIM_DIR)/tb_netlist.v
-NETLIST_SIM_DIR = $(SIM_DIR)/netlist
-NETLIST_SIM_V = $(NETLIST_SIM_DIR)/ysyx_26030092.netlist.v
-NET_CORE = $(SIM_DIR)/ysyx_26030092_netlist_sim.sv
-
-ifeq ($(NETLIST),)
-NETLIST_USE = $(NETLIST_SIM_V)
-else
-NETLIST_USE = $(abspath $(NETLIST))
-endif
-
-$(NET_CORE): $(CORE)
-	@mkdir -p $(SIM_DIR)
-	{ echo '`define NETLIST_SIM'; cat $<; } > $@
-
-$(NETLIST_SIM_V): $(NET_CORE)
-	@mkdir -p $(NETLIST_SIM_DIR)
-	echo tcl $(SCRIPT_DIR)/yosys.tcl $(DESIGN) $(PDK_NAME) \"$(NET_CORE)\" $@ | \
-	  yosys -g -l $(NETLIST_SIM_DIR)/yosys.log -s -
-
-$(NET_TB): $(NETLIST_USE) scripts/gen_netlist_tb.py
-	@mkdir -p $(SIM_DIR)
-	python3 scripts/gen_netlist_tb.py $(NETLIST_USE) $(NET_TB)
-
-$(SIM_DIR)/tb_net.vvp: $(NETLIST_USE) $(CELLS) sim/axi_mem.v $(NET_TB)
-	@mkdir -p $(SIM_DIR)
-	$(IVERILOG) $(IVERILOG_FLAGS) -DNETLIST_SIM -s tb_netlist -o $@ $(NETLIST_USE) $(CELLS) sim/axi_mem.v $(NET_TB)
-
-sim-iverilog-netlist: $(SIM_HEX) $(SIM_DIR)/tb_net.vvp
-	$(VVP) $(SIM_DIR)/tb_net.vvp +HEX=$(CURDIR)/$(SIM_HEX) +CYCLES=$(SIM_CYCLES)
+include scripts/sim-netlist.mk
 
 # 静态检查
 lint: $(CORE)
@@ -197,16 +146,7 @@ PERF_STA ?= 1
 perf:
 	PERF_STA=$(PERF_STA) tools/perf.sh -a $(PERF_ARGS) -n $(PERF_BENCH)
 
-# yosys-sta（面积和时序）
-DESIGN = ysyx_26030092
-RTL_FILES = $(CORE)
-export VERILOG_INCLUDE_DIRS = $(CURDIR)/resources/include
-export CLK_PORT_NAME = clock
-CLK_FREQ_MHZ = 800
-
--include $(YOSYS_STA_HOME)/Makefile.common
-
-PDK_NAME = nangate45
+include scripts/sta.mk
 
 -include ../Makefile
 
