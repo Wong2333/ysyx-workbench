@@ -119,7 +119,8 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    flush      := branch_u.flush | (idu_out.bits.exu_ctl.fence_i & idu_out.fire)
+    fence_flush := idu_out.bits.exu_ctl.fence_i & idu_out.fire
+    flush      := branch_u.flush | fence_flush
     redirectPC := branch_u.redirectPC
 
     // 构建wb wire
