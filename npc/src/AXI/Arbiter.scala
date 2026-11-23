@@ -15,26 +15,25 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
 
     val sel_bits = log2Ceil(n_in)
 
-    // AR
-    val arLock  = RegInit(false.B)
-    val arLockSel = RegInit(0.U(sel_bits.W))
+    // AR：用 readBusy/owner 把读事务串行化，保证同一时刻只有一个读事务在空中
+    val readBusy = RegInit(false.B)
+    val owner    = RegInit(0.U(sel_bits.W))
     val ar_req_bits = VecInit(master.map(_.arvalid)).asUInt
-    val ar_sel  = Mux(arLock, arLockSel, PriorityEncoder(ar_req_bits))
-    when(slave.arvalid && !slave.arready && !arLock) { // 锁存ar_sel
-        arLock    := true.B
-        arLockSel := ar_sel
+    val ar_sel  = Mux(readBusy, owner, PriorityEncoder(ar_req_bits))
+
+    when(!readBusy && slave.arvalid && slave.arready) {
+        readBusy := true.B
+        owner    := ar_sel
     }
-    when(slave.arvalid && slave.arready) {
-        arLock := false.B
+    when(readBusy && slave.rvalid && slave.rlast) {
+        readBusy := false.B
     }
-    when(arLock && !master(arLockSel).arvalid) {
-        arLock := false.B
-    }
-    slave.connectARFrom(master(ar_sel), true.B)
+
+    slave.connectARFrom(master(ar_sel), !readBusy)
     slave.arid := ar_sel
 
     // R
-    val rid_sel = slave.rid(sel_bits - 1, 0)
+    val rid_sel = Mux(readBusy, owner, slave.rid(sel_bits - 1, 0))
     for(i <- 0 until n_in){
         master(i).rvalid := slave.rvalid && (rid_sel === i.U)
         master(i).rid    := slave.rid
@@ -46,7 +45,6 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
         slave.rready := master(rid_sel).rready
     }
 
-    
     slave.connectAWFrom(master(1), true.B)
     slave.connectWFrom(master(1), true.B)
     slave.connectBFrom(master(1), true.B)
