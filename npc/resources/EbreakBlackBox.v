@@ -1,7 +1,7 @@
 module ysyx_26030092_EbreakBlackBox (
     input ebreak_trap
 );
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     import "DPI-C" function void ebreak();
     always @(*) begin
         if(ebreak_trap)begin

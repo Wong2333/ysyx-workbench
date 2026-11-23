@@ -8,7 +8,7 @@ module ysyx_26030092_Commit(
     input mem_commit,
     input [31:0] mem_addr
 );
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     import "DPI-C" context function void commit(input int pc, input int inst, input int dnpc, input int mem_commit, input int mem_addr);
     always @(posedge clock) begin
         if(valid) begin

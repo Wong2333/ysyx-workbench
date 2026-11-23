@@ -3,7 +3,7 @@ module ysyx_26030092_InvalidInstructionBlackBox (
     input [31:0] inst,
     input invalid
 );
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     import "DPI-C" context function void invalid_instruction(input int pc,input int inst);
     always@(*) begin
         if(invalid) invalid_instruction(pc,inst);

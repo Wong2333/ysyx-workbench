@@ -24,7 +24,7 @@ module ysyx_26030092_RegBlackBox(
       end
     endgenerate
 
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     // DPI-C 必须和 rf 在同一个 module 作用域下！
     export "DPI-C" task read_reg;
     task read_reg(input int addr, output int data);
