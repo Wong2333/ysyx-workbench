@@ -48,10 +48,10 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
 
     
     when(slave.arvalid && slave.arready){
-        printf(p"[AR] cyc=$cycle id=${slave.arid} addr=0x${Hexadecimal(slave.araddr)} len=${slave.arlen}\n")
+        printf("[AR] id=%d addr=%x len=%d\n", slave.arid, slave.araddr, slave.arlen)
     }
     when(slave.rvalid && slave.rready){
-        printf(p"[R ] cyc=$cycle id=${slave.rid} data=0x${Hexadecimal(slave.rdata)} last=${slave.rlast}\n")
+        printf("[R ] id=%d data=%x last=%d\n", slave.rid, slave.rdata, slave.rlast)
     }
     slave.connectAWFrom(master(1), true.B)
     slave.connectWFrom(master(1), true.B)
