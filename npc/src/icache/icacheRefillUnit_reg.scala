@@ -7,6 +7,7 @@ import npc.PMU._
 
 
 class ysyx_26030092_icacheRefillUnit_reg extends Module{
+
     val flush = IO(Input(Bool()))
     val req = IO(new Bundle {
         val addr  = Input(UInt(32.W))
@@ -26,19 +27,17 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
 
     val s_idle :: s_ar :: s_data :: Nil = Enum(3)
     val state = RegInit(s_idle)
-    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
-    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 
-    val req_addr  = Reg(UInt(32.W))
     val line_addr = Reg(UInt(32.W))
-    val burst     = Reg(Bool())
     val word_cnt  = RegInit(0.U(2.W))
+    val burst     = RegInit(false.B)
 
-    // 只有 SDRAM(0x8xxx_xxxx) 用 4 拍突发，其余地址（flash/SRAM）一次只取一个 word
+    val done = word_cnt === 3.U
+
     resp.data  := AXI4_port.rdata
-    resp.addr  := Mux(burst, line_addr + (word_cnt << 2), req_addr)
+    resp.addr  := line_addr + (word_cnt << 2)
     resp.valid := (state === s_data) && AXI4_port.rvalid
-    resp.last  := (state === s_data) && AXI4_port.rvalid && Mux(burst, AXI4_port.rlast, true.B)
+    resp.last  := (state === s_data) && AXI4_port.rvalid && Mux(burst, AXI4_port.rlast, done)
 
     req.ready         := false.B
     AXI4_port.arvalid := false.B
@@ -52,7 +51,6 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
         is(s_idle){
             req.ready := true.B
             when(req.valid){
-                req_addr  := req.addr
                 line_addr := Cat(req.addr(31,4), 0.U(4.W))
                 burst     := req.addr(31,28) === "h8".U
                 word_cnt  := 0.U
@@ -61,7 +59,7 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
         }
         is(s_ar){
             AXI4_port.arvalid := true.B
-            AXI4_port.araddr  := Mux(burst, line_addr, req_addr)
+            AXI4_port.araddr  := Mux(burst, line_addr, line_addr + (word_cnt << 2))
             AXI4_port.arlen   := Mux(burst, 3.U, 0.U)
             AXI4_port.arsize  := 2.U
             AXI4_port.arburst := 1.U
@@ -76,9 +74,13 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
                     when(AXI4_port.rlast){ state := s_idle }
                     .otherwise{ word_cnt := word_cnt + 1.U }
                 }.otherwise{
-                    state := s_idle
+                    when(done){ state := s_idle }
+                    .otherwise{ word_cnt := word_cnt + 1.U; state := s_ar }
                 }
             }
         }
     }
+
+    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
+    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 }
