@@ -118,9 +118,9 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    flush      := branch_u.flush | (idu_out.bits.exu_ctl.fence_i & idu_out.fire)
+    flush      := branch_u.flush | (wb_slot.icache_flush & wb_slot_valid)
     redirectPC := branch_u.redirectPC
-    icache_flush := idu_out.bits.exu_ctl.fence_i & idu_out.fire
+    icache_flush := (wb_slot.icache_flush & wb_slot_valid)
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)
@@ -161,7 +161,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, !flush)
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, !(flush | (wb_slot.icache_flush & wb_slot_valid)))
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
