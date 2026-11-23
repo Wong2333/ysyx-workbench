@@ -34,15 +34,16 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
     slave.arid := ar_sel
 
     // R
+    val rid_sel = slave.rid(sel_bits - 1, 0)
     for(i <- 0 until n_in){
-        master(i).rvalid := slave.rvalid && (slave.rid === i.U)
+        master(i).rvalid := slave.rvalid && (rid_sel === i.U)
         master(i).rid    := slave.rid
         master(i).rdata  := slave.rdata
         master(i).rresp  := slave.rresp
         master(i).rlast  := slave.rlast
     }
     when(slave.rvalid){
-        slave.rready := master(slave.rid).rready
+        slave.rready := master(rid_sel).rready
     }
 
     
