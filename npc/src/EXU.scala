@@ -51,7 +51,7 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
-    val icache_flush = IO(Output(Bool()))
+    val fencei = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
@@ -118,9 +118,9 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    flush      := branch_u.flush | (wb_slot.icache_flush & wb_slot_valid)
+    fencei     := wb_slot.icache_flush & wb_slot_valid
+    flush      := branch_u.flush | fencei
     redirectPC := branch_u.redirectPC
-    icache_flush := (wb_slot.icache_flush & wb_slot_valid)
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)
@@ -160,8 +160,8 @@ class ysyx_26030092_EXU extends Module{
     commit_info_comb.next_pc := branch_u.dnpc
 
     // 非访存指令可以流水
-    lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy && !(flush | (wb_slot.icache_flush & wb_slot_valid))
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !(flush | (wb_slot.icache_flush & wb_slot_valid))
+    lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy && !flush
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
