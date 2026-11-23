@@ -41,8 +41,7 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
     resp.data  := AXI4_port.rdata
     resp.addr  := line_addr + (word_cnt << 2)
     resp.valid := (state === s_data) && AXI4_port.rvalid
-    resp.last  := (state === s_data) && AXI4_port.rvalid &&
-                  (if (true) Mux(burst, AXI4_port.rlast, done) else done)
+    resp.last  := (state === s_data) && AXI4_port.rvalid && Mux(burst, AXI4_port.rlast, done)
 
     req.ready         := false.B
     AXI4_port.arvalid := false.B
