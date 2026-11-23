@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# 为"综合网表"生成一个专用 testbench：
-#   yosys 综合后顶层端口被 bit-blast 成 io_master_awaddr_0_ 这样的形式，
-#   这里从网表的端口声明直接生成例化语句，把逐位端口接回向量信号，
-#   既不改网表、也不加 wrap 模块。
+# 为"综合网表"生成一个专用 testbench：不改网表、不加 wrap，只把顶层端口
+# 连接到 tb 里的向量信号，并加一个"程序结束"的判据。
 #
 # 用法: gen_netlist_tb.py <netlist.v> <out_tb.v>
 import re
@@ -12,103 +10,120 @@ SRC = "ysyx_26030092"
 
 
 def parse_ports(path):
+    """返回 [(端口名, 方向, base, bit 或 None, base 的总位宽)]。
+
+    兼容三种端口写法：
+      1. 向量端口    input [31:0] io_master_araddr ;   （iEDA 输出的网表）
+      2. 中括号分位  \io_master_araddr[3]              （yosys 的 splitnets -ports）
+      3. 下划线分位  io_master_araddr_3_               （旧版 yosys）
+    """
     text = open(path).read()
     m = re.search(r'^module\s+' + SRC + r'\s*\(', text, re.M)
     if not m:
         raise SystemExit("网表里找不到 module " + SRC)
-    names = [n.strip() for n in text[m.end():text.index(");", m.end())].split(",") if n.strip()]
-    # 方向声明
+    body = text[m.end():]
+    end = body.index(");")
+    names = [n.strip().replace("\\", "").strip() for n in body[:end].split(",")]
+    names = [n for n in names if n]
+
     dirs = {}
-    for line in text[text.index(");", m.end()):].split("\n"):
+    widths = {}
+    for line in body[end:].split("\n"):
         line = line.strip().rstrip(";")
-        for d in ("input", "output", "inout"):
-            if line.startswith(d + " "):
-                nm = line.split()[-1]
-                dirs[nm] = d
-                break
+        mt = re.match(r'^(input|output|inout)\s*(\[[^\]]*\])?\s*(\S+)\s*$', line)
+        if mt:
+            d, rng, nm = mt.group(1), mt.group(2), mt.group(3)
+            dirs[nm] = d
+            if rng:
+                hi, lo = [int(x) for x in re.findall(r'\d+', rng)[:2]]
+                widths[nm] = abs(hi - lo) + 1
+            else:
+                widths[nm] = 1
+            continue
         if line.startswith("assign") or line.startswith("endmodule"):
             break
-    return [(n, dirs.get(n, "input")) for n in names]
+
+    # 分位端口先归组，得到 base 的总位宽
+    bits = {}
+    for n in names:
+        mt = re.match(r'^(.*)\[(\d+)\]$', n) or re.match(r'^(.*)_(\d+)_$', n)
+        if mt:
+            bits.setdefault(mt.group(1), set()).add(int(mt.group(2)))
+
+    out = []
+    for n in names:
+        mt = re.match(r'^(.*)\[(\d+)\]$', n) or re.match(r'^(.*)_(\d+)_$', n)
+        if mt:
+            base, i = mt.group(1), int(mt.group(2))
+            out.append((n, dirs.get(n, "input"), base, i, max(bits[base]) + 1))
+        else:
+            out.append((n, dirs.get(n, "input"), n, None, max(1, widths.get(n, 1))))
+    return out
 
 
-def vec_name(port):
-    """io_master_awaddr_3_ -> ('io_master_awaddr', 3)；单 bit 端口返回 (port, None)"""
-    m = re.match(r'^(.*)_(\d+)_$', port)
-    if m:
-        return m.group(1), int(m.group(2))
-    return port, None
+def sig_name(base):
+    vn = "m_" + base.replace("io_master_", "").replace("io_slave_", "s_")
+    return vn
 
 
 def main():
     net, out = sys.argv[1], sys.argv[2]
     ports = parse_ports(net)
+    text = open(net).read()
 
-    # 综合时如果没加 -flatten，IFU 层次还在，就能直接探内部信号；
-    # 加了 -flatten 就只有顶层端口可看，结束判据退化成"AXI 静止"。
-    hier = "_IFU_u_out_bits_pc_0_" in open(net).read()
+    # 保留层次的网表可以直接探内部 PC，结束判据更可靠；扁平网表只能看 AXI。
+    hier = "_IFU_u_out_bits_pc_0_" in text
 
-    # 1) 归组，算出每个向量信号的位宽
-    groups = {}          # base -> width
-    singles = []         # 单 bit 端口名
-    for (p, d) in ports:
-        base, idx = vec_name(p)
-        if idx is None:
-            singles.append((p, d))
-        else:
-            groups[base] = max(groups.get(base, 0), idx + 1)
-
-    sig = {}             # port -> 连接的 tb 信号表达式
-    decl = []            # tb 里的信号声明
-    for base, w in sorted(groups.items()):
-        vn = "m_" + base.replace("io_master_", "").replace("io_slave_", "s_")
-        decl.append("  wire [%d:0] %s;" % (w - 1, vn))
-        for i in range(w):
-            sig["%s_%d_" % (base, i)] = "%s[%d]" % (vn, i)
-    for (p, d) in singles:
-        vn = "m_" + p.replace("io_master_", "").replace("io_slave_", "s_")
-        if not any(vn in x for x in decl):
-            decl.append("  wire %s;" % vn)
-        sig[p] = vn
-
-    # 2) 例化语句：slave 侧输入接 0，输出留空
-    conn = ["    .clock(clock)", "    .reset(reset)"]
-    for (p, d) in ports:
+    # 1) 信号声明 + 连接表达式
+    decl = []
+    sig = {}
+    seen = set()
+    for (p, d, base, bit, w) in ports:
         if p in ("clock", "reset"):
             continue
-        if p == "io_interrupt":          # 顶层中断输入，仿真里恒为 0（RTL tb 里也是这样接的）
-            conn.append("    .%s(1'b0)" % p)
+        vn = sig_name(base)
+        if vn not in seen:
+            seen.add(vn)
+            decl.append("  wire [%d:0] %s;" % (w - 1, vn) if w > 1 else "  wire %s;" % vn)
+        if bit is None:
+            sig[p] = vn
+        else:
+            sig[p] = "%s[%d]" % (vn, bit) if w > 1 else vn
+
+    # 2) 例化：slave 侧输入接 0，输出不接
+    conn = ["    .clock(clock)", "    .reset(reset)"]
+    for (p, d, base, bit, w) in ports:
+        if p in ("clock", "reset"):
+            continue
+        if p == "io_interrupt":
+            conn.append("    .%s(%d'b0)" % (p, w))
             continue
         if p.startswith("io_slave_"):
             if d == "input":
-                conn.append("    .%s(1'b0)" % p)
+                conn.append("    .%s(%d'b0)" % (p, w))
             continue
         conn.append("    .%s(%s)" % (p, sig[p]))
 
-    # 3) 结束判据：ebreak 之后 PC 跳到 mtvec（复位值 0），于是 IFU 会去取 0x0 的指令
-    #    —— 程序正常执行绝不会从地址 0 取指，用这个当"程序结束"的判据。
-    #    这个信号只用到顶层 AXI 端口，扁不扁平都能用；
-    #    保留层次的网表再额外看 PC 是否变 X（双保险）。
-    stop = """  // ebreak → 异常 → PC := mtvec(复位值 0) → IFU 发 AR 到 0x0，据此判定程序结束
-  wire fetch_zero = m_arvalid & m_arready & (m_araddr == 32'd0);"""
+    # 3) 结束判据：ebreak 之后 PC 跳到 mtvec（复位值 0），IFU 会去取 0x0 的指令
+    stop = """  wire fetch_zero = m_arvalid & m_arready & (m_araddr == 32'd0);"""
     if hier:
         stop += """
   wire pc_x = (^dut._IFU_u_out_bits_pc_0_ === 1'bx);"""
     else:
         stop += """
-  wire pc_x = 1'b0;          // 扁平网表看不到内部 PC，只能靠 fetch_zero"""
+  wire pc_x = 1'b0;"""
     stop_cond = """    if ((cycles > 200) && (fetch_zero || pc_x)) begin
       $display("[netlist] EBREAK: 程序结束, cycles=%0d", cycles);
       $finish;
     end"""
 
-    # 4) 生成 tb
     txt = """// 自动生成：综合网表专用 testbench（不改网表、不加 wrap）
-// 端口逐位连接由 gen_netlist_tb.py 生成（hier=@@HIER@@）
+// 端口连接由 gen_netlist_tb.py 生成（hier=@@HIER@@）
 `timescale 1ns/1ps
 module tb_netlist;
   reg clock = 1'b0;
   reg reset = 1'b1;
-  always #0.625 clock = ~clock;          // 800MHz
+  always #0.625 clock = ~clock;
 
 @@DECL@@
 
@@ -116,7 +131,6 @@ module tb_netlist;
 @@CONN@@
   );
 
-  // 存储器（AXI 从机行为模型）
   axi_mem mem(
     .clock(clock), .reset(reset),
     .awready(m_awready), .awvalid(m_awvalid), .awaddr(m_awaddr), .awid(m_awid),
@@ -170,7 +184,8 @@ endmodule
               .replace("@@STOP@@", stop)
               .replace("@@STOPCOND@@", stop_cond))
     open(out, "w").write(txt)
-    print("gen_netlist_tb: %d 端口 -> %s (hier=%d)" % (len(ports), out, hier))
+    print("gen_netlist_tb: %d 端口 -> %s (hier=%d, 向量端口=%d)"
+          % (len(ports), out, hier, sum(1 for p in ports if p[3] is None and p[4] > 1)))
 
 
 main()
