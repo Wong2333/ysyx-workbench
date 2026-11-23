@@ -22,29 +22,45 @@ class ysyx_26030092_CLINT extends Module{
 
     switch(status){
         is(s_idle){
+            // 段内任何地址的读都接受：mtime/mtimeh 返回计数值，其它返回 0，
+            // 避免"范围被拦截但地址不认识"导致 master 永远等不到响应
+            AXI4_port.arready := true.B
             when(AXI4_port.arvalid){
-                when(AXI4_port.araddr === (0x02000000L + 0XBFF8).U){
-                    AXI4_port.arready := true.B
-                    out_reg := mtime_lo
-                    status := s_busy
-                }
-                when(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U){
-                    AXI4_port.arready := true.B
-                    out_reg := mtime_hi
-                    status := s_busy
-                }
+                out_reg := Mux(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U, mtime_hi,
+                           Mux(AXI4_port.araddr === (0x02000000L + 0XBFF8).U, mtime_lo, 0.U))
+                status := s_busy
             }
         }
         is(s_busy){
             AXI4_port.rdata := out_reg
             AXI4_port.rresp := false.B
+            AXI4_port.rlast := true.B
             AXI4_port.rvalid := true.B
             when(AXI4_port.rready){
-                // skip_difftest.io.skip := true.B
                 status := s_idle
             }
         }
     }
+
+    // 写通道：mtimecmp/msip 等不实现，接受后直接回 OKAY，避免 master 挂死
+    val aw_got = RegInit(false.B)
+    val w_got  = RegInit(false.B)
+    val b_valid = RegInit(false.B)
+
+    AXI4_port.awready := !aw_got && !b_valid
+    AXI4_port.wready  := !w_got  && !b_valid
+    AXI4_port.bvalid  := b_valid
+    AXI4_port.bid     := 0.U
+    AXI4_port.bresp   := 0.U
+
+    when(AXI4_port.awvalid && AXI4_port.awready){ aw_got := true.B }
+    when(AXI4_port.wvalid  && AXI4_port.wready ){ w_got  := true.B }
+    when(aw_got && w_got && !b_valid){
+        b_valid := true.B
+        aw_got  := false.B
+        w_got   := false.B
+    }
+    when(b_valid && AXI4_port.bready){ b_valid := false.B }
 }
 
 class ysyx_26030092_CLINT_AXI4Router extends Module {
