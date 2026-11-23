@@ -51,6 +51,7 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
+    val icache_flush = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
@@ -117,8 +118,9 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    flush      := branch_u.flush
+    flush      := branch_u.flush | (idu_out.bits.exu_ctl.fence_i & idu_out.fire)
     redirectPC := branch_u.redirectPC
+    icache_flush := idu_out.bits.exu_ctl.fence_i & idu_out.fire
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)
