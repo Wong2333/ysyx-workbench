@@ -7,8 +7,6 @@ import npc.PMU._
 
 
 class ysyx_26030092_icacheRefillUnit_reg extends Module{
-    val words     = 4
-    val word_bits = 2
 
     val flush = IO(Input(Bool()))
     val req = IO(new Bundle {
@@ -29,14 +27,12 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
 
     val s_idle :: s_ar :: s_data :: Nil = Enum(3)
     val state = RegInit(s_idle)
-    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
-    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 
     val line_addr = Reg(UInt(32.W))
-    val word_cnt  = RegInit(0.U(word_bits.W))
+    val word_cnt  = RegInit(0.U(2.W))
     val burst     = RegInit(false.B)
 
-    val done = word_cnt === (words - 1).U
+    val done = word_cnt === 3.U
 
     resp.data  := AXI4_port.rdata
     resp.addr  := line_addr + (word_cnt << 2)
@@ -64,7 +60,7 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
         is(s_ar){
             AXI4_port.arvalid := true.B
             AXI4_port.araddr  := Mux(burst, line_addr, line_addr + (word_cnt << 2))
-            AXI4_port.arlen   := Mux(burst, (words - 1).U, 0.U)
+            AXI4_port.arlen   := Mux(burst, 3.U, 0.U)
             AXI4_port.arsize  := 2.U
             AXI4_port.arburst := 1.U
             when(AXI4_port.arready){
@@ -84,4 +80,7 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
             }
         }
     }
+
+    PerfCounter("icache_refill_busy")  := (state =/= s_idle)
+    PerfCounter("icache_refill_count") := (state === s_idle) && req.valid
 }
