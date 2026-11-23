@@ -51,6 +51,7 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
+    val fence_flush = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
