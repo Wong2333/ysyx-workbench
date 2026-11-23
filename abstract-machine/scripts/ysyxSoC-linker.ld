@@ -46,6 +46,7 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
+    _bss_end = .;
   } > sdram
 
   . = ALIGN(8);
