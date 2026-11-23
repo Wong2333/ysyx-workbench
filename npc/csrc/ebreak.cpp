@@ -70,7 +70,6 @@ extern u_int64_t inst_counter;
 void printPMU();
 void ebreak() {
     uint32_t status = read_rf_reg(10);
-    printf("EBREAK at pc = 0x%08x, ra = 0x%08x, sp = 0x%08x\n", read_fetch_pc(), read_rf_reg(1), read_rf_reg(2));
     printf("cycle: %llu, InstCounter: %llu, IPC: %f\n",cycle, inst_counter , 1.0 * inst_counter / cycle);
     printPMU();
     if(status == 0){
