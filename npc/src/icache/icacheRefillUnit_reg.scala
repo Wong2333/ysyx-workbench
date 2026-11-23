@@ -7,6 +7,7 @@ import npc.PMU._
 
 
 class ysyx_26030092_icacheRefillUnit_reg extends Module{
+
     val flush = IO(Input(Bool()))
     val req = IO(new Bundle {
         val addr  = Input(UInt(32.W))
@@ -24,18 +25,19 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port.initMaster()
 
-    val s_idle :: s_wait_mem_free :: s_wait_mem_data :: Nil = Enum(3)
+    val s_idle :: s_ar :: s_data :: Nil = Enum(3)
     val state = RegInit(s_idle)
 
-    val req_addr_reg = Reg(UInt(32.W))
-    val beat_cnt     = RegInit(0.U(2.W))
+    val line_addr = Reg(UInt(32.W))
+    val word_cnt  = RegInit(0.U(2.W))
+    val burst     = RegInit(false.B)
 
-    val block_addr = Cat(req_addr_reg(31,4), 0.U(4.W))
+    val done = word_cnt === 3.U
 
     resp.data  := AXI4_port.rdata
-    resp.last  := AXI4_port.rlast
-    resp.addr  := block_addr + (beat_cnt << 2)
-    resp.valid := false.B
+    resp.addr  := line_addr + (word_cnt << 2)
+    resp.valid := (state === s_data) && AXI4_port.rvalid
+    resp.last  := (state === s_data) && AXI4_port.rvalid && Mux(burst, AXI4_port.rlast, done)
 
     req.ready         := false.B
     AXI4_port.arvalid := false.B
@@ -49,28 +51,31 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
         is(s_idle){
             req.ready := true.B
             when(req.valid){
-                req_addr_reg := req.addr
-                beat_cnt     := 0.U
-                state        := s_wait_mem_free
+                line_addr := Cat(req.addr(31,4), 0.U(4.W))
+                burst     := req.addr(31,28) === "h8".U
+                word_cnt  := 0.U
+                state     := s_ar
             }
         }
-        is(s_wait_mem_free){
+        is(s_ar){
             AXI4_port.arvalid := true.B
-            AXI4_port.araddr  := block_addr
-            AXI4_port.arlen   := 3.U
+            AXI4_port.araddr  := Mux(burst, line_addr, line_addr + (word_cnt << 2))
+            AXI4_port.arlen   := Mux(burst, 3.U, 0.U)
             AXI4_port.arsize  := 2.U
             AXI4_port.arburst := 1.U
             when(AXI4_port.arready){
-                state := s_wait_mem_data
+                state := s_data
             }
         }
-        is(s_wait_mem_data){
+        is(s_data){
+            AXI4_port.rready := true.B
             when(AXI4_port.rvalid){
-                AXI4_port.rready := true.B
-                resp.valid := true.B
-                beat_cnt := beat_cnt + 1.U
-                when(AXI4_port.rlast){
-                    state := s_idle
+                when(burst){
+                    when(AXI4_port.rlast){ state := s_idle }
+                    .otherwise{ word_cnt := word_cnt + 1.U }
+                }.otherwise{
+                    when(done){ state := s_idle }
+                    .otherwise{ word_cnt := word_cnt + 1.U; state := s_ar }
                 }
             }
         }
