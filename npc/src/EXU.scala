@@ -161,7 +161,7 @@ class ysyx_26030092_EXU extends Module{
     commit_info_comb.next_pc := branch_u.dnpc
 
     // 非访存指令可以流水
-    lsu_in.valid  := idu_out.fire && is_mem && !lsu_busy
+    lsu_in.valid  := idu_out.fire && is_mem
     idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
