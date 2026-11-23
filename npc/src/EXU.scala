@@ -51,7 +51,6 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
-    val fence_flush = IO(Output(Bool()))          // 供 IFU 在 EXU 阶段就清 ICache（不能并入 flush，会有组合环）
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
@@ -119,7 +118,6 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    fence_flush := idu_out.bits.exu_ctl.fence_i & idu_out.fire
     flush      := branch_u.flush
     redirectPC := branch_u.redirectPC
 
@@ -162,7 +160,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, !flush)
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B)
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
