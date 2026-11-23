@@ -25,7 +25,6 @@ class WriteBackPortBundle extends Bundle{
     val PC = Output(UInt(32.W))
     val Exception_Code = Output(UInt(32.W))
 
-    val icache_flush = Output(Bool())
 }
 
 // WBU → IFU 的 PC 更新端口：commit 脉冲 + 跳转/trap 事件

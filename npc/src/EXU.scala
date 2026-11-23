@@ -52,6 +52,7 @@ class EXUCTLBundle extends Bundle{
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
     val fencei = IO(Output(Bool()))
+    val fencei_reg = RegInit(false.B)
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
@@ -118,7 +119,8 @@ class ysyx_26030092_EXU extends Module{
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    fencei     := wb_slot.icache_flush & wb_slot_valid
+    fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
+    fencei     := fencei_reg
     flush      := branch_u.flush | fencei
     redirectPC := branch_u.redirectPC
 
@@ -139,7 +141,6 @@ class ysyx_26030092_EXU extends Module{
         wb_data.CSRData := Mux(idu_out.bits.exu_ctl.csr_op === CSROp.csrrw,
                                idu_out.bits.rs1_data, AluResult)
     }
-    wb_data.icache_flush := idu_out.bits.exu_ctl.fence_i
     wb_data.Exception_Code := idu_out.bits.excp_code
     wb_data.isTrap := idu_out.bits.is_excp
 
