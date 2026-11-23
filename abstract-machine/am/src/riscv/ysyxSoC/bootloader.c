@@ -19,6 +19,9 @@ void first_stage_bootloader(){
   }
 }
 
+extern uint32_t _bss_start;
+extern uint32_t _bss_end;
+
 extern uint32_t _text_lma_start;
 extern uint32_t _text_vma_start;
 extern uint32_t _text_vma_end;
@@ -50,5 +53,11 @@ void second_stage_bootloader(){
     dst++;
     src++;
   }
+
+  // .bss 是 NOLOAD 段，必须由软件清零（不能假设存储器初值为 0）
+  for(dst = &_bss_start; dst < &_bss_end; dst++){
+    *dst = 0;
+  }
+
   asm volatile("fence.i;");
 }
