@@ -33,7 +33,7 @@ class ysyx_26030092 extends Module{
     
 
 
-    IFU_u.flush_icache := WBU_u.icache_flush
+    IFU_u.flush_icache := EXU_u.fencei
     IFU_u.flush := EXU_u.flush
     IFU_u.RedirectPC :=EXU_u.redirectPC
 
@@ -45,7 +45,6 @@ class ysyx_26030092 extends Module{
     IDU_u.csr_info <> EXU_u.csr_info
 
     EXU_u.idu_out <> IDU_u.out
-    EXU_u.idu_out_valid := IDU_u.out_valid_o
 
     EXU_u.lsu_in <> LSU_u.in
     EXU_u.lsu_out <> LSU_u.out

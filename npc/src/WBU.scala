@@ -25,7 +25,6 @@ class WriteBackPortBundle extends Bundle{
     val PC = Output(UInt(32.W))
     val Exception_Code = Output(UInt(32.W))
 
-    val icache_flush = Output(Bool())
 }
 
 // WBU → IFU 的 PC 更新端口：commit 脉冲 + 跳转/trap 事件
@@ -52,7 +51,6 @@ class ysyx_26030092_WBU extends Module{
     val WriteRegPort = IO(Output(new WriteRegPortBundle))
     val CSRWritePort = IO(Output(new CSRWritePortBundle))
     val ExceptionPort = IO(Output(new ExceptionInfoBundle))
-    val icache_flush = IO(Output(Bool()))
 
     val commit_info = IO(Input(new CommitInfoBundle))
 
@@ -61,7 +59,6 @@ class ysyx_26030092_WBU extends Module{
     WriteRegPort := 0.U.asTypeOf(new WriteRegPortBundle)
     CSRWritePort := 0.U.asTypeOf(new CSRWritePortBundle)
     ExceptionPort := 0.U.asTypeOf(new ExceptionInfoBundle)
-    icache_flush := false.B
 
     when(in.fire){
         WriteRegPort.waddr := in.bits.RegWaddr
@@ -76,7 +73,6 @@ class ysyx_26030092_WBU extends Module{
         ExceptionPort.PC := in.bits.PC
         ExceptionPort.Exception_Code := in.bits.Exception_Code
 
-        icache_flush := in.bits.icache_flush
     }
 
     PerfCounter("WBU_commit") := in.fire

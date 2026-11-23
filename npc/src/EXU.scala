@@ -51,12 +51,13 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
+    val fencei = IO(Output(Bool()))
+    val fencei_reg = RegInit(false.B)
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
-    val idu_out_valid = IO(Input(Bool()))
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
 
     val lsu_in = IO(Decoupled(new LSUBundle))
@@ -114,11 +115,13 @@ class ysyx_26030092_EXU extends Module{
     branch_u.jump_op   := idu_out.bits.exu_ctl.jump_op
     branch_u.sys_op    := idu_out.bits.exu_ctl.sys_op
     branch_u.is_excp   := idu_out.bits.is_excp
-    branch_u.valid     := idu_out_valid
+    branch_u.valid     := idu_out.valid
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 
-    flush      := branch_u.flush
+    fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
+    fencei     := fencei_reg
+    flush      := branch_u.flush | fencei
     redirectPC := branch_u.redirectPC
 
     // 构建wb wire
@@ -138,7 +141,6 @@ class ysyx_26030092_EXU extends Module{
         wb_data.CSRData := Mux(idu_out.bits.exu_ctl.csr_op === CSROp.csrrw,
                                idu_out.bits.rs1_data, AluResult)
     }
-    wb_data.icache_flush := idu_out.bits.exu_ctl.fence_i
     wb_data.Exception_Code := idu_out.bits.excp_code
     wb_data.isTrap := idu_out.bits.is_excp
 
@@ -159,8 +161,8 @@ class ysyx_26030092_EXU extends Module{
     commit_info_comb.next_pc := branch_u.dnpc
 
     // 非访存指令可以流水
-    lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B)
+    lsu_in.valid  := idu_out.fire && is_mem
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
