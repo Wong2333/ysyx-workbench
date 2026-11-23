@@ -71,7 +71,7 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
 
   // CLINT 地址空间定义 (标准地址: 0x02000000 - 0x0200BFFF)
   val CLINT_BASE = 0x02000000L
-  val CLINT_SIZE = 0xC000L
+  val CLINT_SIZE = 0x10000L
 
   in.initSlave()
   toCLINT.initMaster()
