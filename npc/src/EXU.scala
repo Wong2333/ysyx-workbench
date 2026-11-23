@@ -56,7 +56,6 @@ class ysyx_26030092_EXU extends Module{
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
-    val idu_out_valid = IO(Input(Bool()))
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
 
     val lsu_in = IO(Decoupled(new LSUBundle))
@@ -114,7 +113,7 @@ class ysyx_26030092_EXU extends Module{
     branch_u.jump_op   := idu_out.bits.exu_ctl.jump_op
     branch_u.sys_op    := idu_out.bits.exu_ctl.sys_op
     branch_u.is_excp   := idu_out.bits.is_excp
-    branch_u.valid     := idu_out_valid
+    branch_u.valid     := idu_out.valid
     branch_u.fire      := idu_out.fire
     branch_u.lsu_trap  := lsu_trap
 

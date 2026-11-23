@@ -80,7 +80,6 @@ class ysyx_26030092_IDU extends Module{
     val flush = IO(Input(Bool()))
     val out = IO(Decoupled(new IDUBundle))
 
-    val out_valid_o = IO(Output(Bool()))
     val out_comb = Wire(new IDUBundle)
 
     val wb_info  = IO(Flipped(new StageWriteInfoBundle))
@@ -117,7 +116,6 @@ class ysyx_26030092_IDU extends Module{
     val forward_csr_valid = stall_csr && csr_info.valid
 
     val out_valid = RegInit(false.B)
-    out_valid_o := out_valid
     in.ready := false.B
     out.valid := out_valid
     out_comb.decode.inst := in.bits.inst
@@ -174,7 +172,6 @@ class ysyx_26030092_IDU extends Module{
     }
     when(flush){
         in.ready := false.B
-        out.valid := false.B
         out_valid := false.B
     }
 
