@@ -22,42 +22,29 @@ class ysyx_26030092_CLINT extends Module{
 
     switch(status){
         is(s_idle){
-            AXI4_port.arready := true.B
             when(AXI4_port.arvalid){
-                out_reg := Mux(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U, mtime_hi, mtime_lo)
-                status := s_busy
+                when(AXI4_port.araddr === (0x02000000L + 0XBFF8).U){
+                    AXI4_port.arready := true.B
+                    out_reg := mtime_lo
+                    status := s_busy
+                }
+                when(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U){
+                    AXI4_port.arready := true.B
+                    out_reg := mtime_hi
+                    status := s_busy
+                }
             }
         }
         is(s_busy){
             AXI4_port.rdata := out_reg
             AXI4_port.rresp := false.B
-            AXI4_port.rlast := true.B
             AXI4_port.rvalid := true.B
             when(AXI4_port.rready){
+                // skip_difftest.io.skip := true.B
                 status := s_idle
             }
         }
     }
-
-    // 写通道：CLINT 的写（mtimecmp/msip 等）不实现，接受后直接回 OKAY，避免 master 挂死
-    val aw_got = RegInit(false.B)
-    val w_got  = RegInit(false.B)
-    val b_valid = RegInit(false.B)
-
-    AXI4_port.awready := !aw_got && !b_valid
-    AXI4_port.wready  := !w_got  && !b_valid
-    AXI4_port.bvalid  := b_valid
-    AXI4_port.bid     := 0.U
-    AXI4_port.bresp   := 0.U
-
-    when(AXI4_port.awvalid && AXI4_port.awready){ aw_got := true.B }
-    when(AXI4_port.wvalid  && AXI4_port.wready ){ w_got  := true.B }
-    when(aw_got && w_got && !b_valid){
-        b_valid := true.B
-        aw_got  := false.B
-        w_got   := false.B
-    }
-    when(b_valid && AXI4_port.bready){ b_valid := false.B }
 }
 
 class ysyx_26030092_CLINT_AXI4Router extends Module {
@@ -66,10 +53,9 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
   val toCLINT = IO(new AXI4Bundle)
   val toSoC = IO(new AXI4Bundle)
 
-  // 只拦截 mtime(0x0200BFF8) / mtimeh(0x0200BFFC)，其余地址全部转发给 SoC，
-  // 避免 mtimecmp/msip 等写操作被我们拦下后得不到响应而挂死。
-  val CLINT_BASE = 0x0200BFF8L
-  val CLINT_SIZE = 8L
+  // CLINT 地址空间定义 (标准地址: 0x02000000 - 0x0200BFFF)
+  val CLINT_BASE = 0x02000000L
+  val CLINT_SIZE = 0xC000L
 
   in.initSlave()
   toCLINT.initMaster()
