@@ -47,12 +47,6 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
     }
 
     
-    when(slave.arvalid && slave.arready){
-        printf("[CPU-AR] id=%d addr=%x\n", slave.arid, slave.araddr)
-    }
-    when(slave.rvalid && slave.rready){
-        printf("[CPU-R ] id=%d data=%x last=%d\n", slave.rid, slave.rdata, slave.rlast)
-    }
     slave.connectAWFrom(master(1), true.B)
     slave.connectWFrom(master(1), true.B)
     slave.connectBFrom(master(1), true.B)

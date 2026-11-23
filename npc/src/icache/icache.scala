@@ -26,31 +26,33 @@ class ysyx_26030092_icache extends Module {
 
     val data       = Reg(Vec(8, UInt(32.W)))
     val tag        = Reg(Vec(2, UInt(27.W)))
-    val line_valid = RegInit(VecInit(Seq.fill(2)(false.B)))
+    val word_valid = RegInit(VecInit(Seq.fill(8)(false.B)))
 
-    val offset  = req.addr(3, 2) // req addr
+    val offset  = req.addr(3, 2)
     val index   = req.addr(4)
     val cur_tag = req.addr(31, 5)
     dontTouch(index)
     dontTouch(offset)
     dontTouch(cur_tag)
 
-    // val line = VecInit.tabulate(4)(i => data(index * 4.U + i.U))
-    resp.data := data(Cat(index, offset))
-    resp.hit  := (cur_tag === tag(index)) && line_valid(index)
+    val req_word = Cat(index, offset)
 
-    val refill_offset = refill.addr(3, 2) // refill addr
+    resp.data := data(req_word)
+    resp.hit  := (cur_tag === tag(index)) && word_valid(req_word)
+
+    val refill_offset = refill.addr(3, 2)
     val refill_index  = refill.addr(4)
+    val refill_word   = Cat(refill_index, refill_offset)
     val refill_tag    = refill.addr(31, 5)
     when(refill.valid) {
-        data(Cat(refill_index, refill_offset)) := refill.data
+        data(refill_word)       := refill.data
+        word_valid(refill_word) := true.B
         when(refill.last) {
-            tag(refill_index)        := refill_tag
-            line_valid(refill_index) := true.B
+            tag(refill_index) := refill_tag
         }
     }
 
     when(flush_cache) {
-        line_valid.foreach(_ := false.B)
+        word_valid.foreach(_ := false.B)
     }
 }
