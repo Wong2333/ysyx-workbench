@@ -44,7 +44,7 @@ class ysyx_26030092_IFU extends Module{
     
     val icache_main_pipe = Module(new ysyx_26030092_icacheMainPipe_reg)
     icache_main_pipe.AXI4_port <> AXI4_port
-    icache_main_pipe.icache_flush := flush_icache
+    icache_main_pipe.icache_flush := true.B   // DEBUG: 每拍清空 icache，验证 fence.i 假设
     icache_main_pipe.req.valid := true.B
     icache_main_pipe.req.addr := PC_reg.io.pc
     icache_main_pipe.flush := flush
