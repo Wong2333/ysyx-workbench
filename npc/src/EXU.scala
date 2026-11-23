@@ -161,7 +161,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.valid && is_mem && !lsu_busy
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, !(flush | (wb_slot.icache_flush & wb_slot_valid)))
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !(flush | (wb_slot.icache_flush & wb_slot_valid))
     lsu_out.ready := lsu_busy
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot

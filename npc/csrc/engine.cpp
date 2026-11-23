@@ -123,6 +123,11 @@ static void on_signal(int) { g_stop = 1; }
 static void check_stop() {
     if (g_stop) {
         close_tfp();
+        { extern void print_itrace();
+          FILE* f = fopen("/home/wjm/temp/itrace_dump.txt", "w");
+          int old = dup(1);
+          if (f) { dup2(fileno(f), 1); print_itrace(); fflush(stdout); dup2(old, 1); fclose(f); }
+          else print_itrace(); }
         fprintf(stderr, "\n[Ctrl-C] 退出\n");
         exit(0);
     }
