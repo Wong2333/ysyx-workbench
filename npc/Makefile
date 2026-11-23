@@ -39,6 +39,10 @@ VERILATOR_CFLAGS += --build -cc -O3 --noassert \
 
 VERILATOR_CFLAGS += -I$(YSYX_SoC_HOME)/perip/spi/rtl -I$(YSYX_SoC_HOME)/perip/uart16550/rtl
 
+# DPI 只有在显式定义 NPC_DPI 时才编进 RTL（difftest/mtrace/perf 需要）。
+# 这样 make verilog 生成的 .sv 不带任何宏依赖，直接给 iverilog/Verilator 都能编。
+VERILATOR_CFLAGS += -DNPC_DPI
+
 ifeq ($(CONFIG_ENABLE_FST_TRACE),y)
 VERILATOR_CFLAGS += --trace-fst
 endif

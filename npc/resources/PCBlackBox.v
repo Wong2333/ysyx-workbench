@@ -28,7 +28,7 @@ module ysyx_26030092_PCBlackBox(
             end
         end
     end
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     export "DPI-C" task read_pc;
     task read_pc(output int data);
         data = PC;

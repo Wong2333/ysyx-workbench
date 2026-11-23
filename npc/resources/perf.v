@@ -3,7 +3,7 @@ module ysyx_26030092_PerfCounterArray(
     input io_reset,
     input io_event
 );
-`ifndef SYNTHESIS
+`ifdef NPC_DPI
     reg [63:0] counter;
 
     always @(posedge io_clock) begin
