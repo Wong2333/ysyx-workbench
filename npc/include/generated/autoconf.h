@@ -5,5 +5,6 @@
  *
  */
 #define CONFIG_TRACE_PATH "./"
+#define CONFIG_ENABLE_ITRACE 1
 #define CONFIG__ENABLE_VERILOG 1
 #define CONFIG__ENABLE_C 1
