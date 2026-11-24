@@ -57,6 +57,7 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
     // 取指收到错误响应（比如访问了不存在的地址）时，不能把这个字当成指令：
     // 不写 cache、不交付给 IFU，让这次取指作废并挂住，等紧随其后的 flush 冲刷掉。
     val refill_err = AXI4_port.rvalid && (AXI4_port.rresp =/= 0.U)
+    val icache_main_dbg_reqfire = req_fifo.io.deq.valid && true.B
     icache.refill.addr := refill_unit.resp.addr
     icache.refill.data := refill_unit.resp.data
     icache.refill.last := refill_unit.resp.last
@@ -70,6 +71,10 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
     resp.bits.excp_code := 0.U
     resp.bits.is_excp := false.B
 
+    when(flush){ printf("[DBG] FLUSH pc_next(dbg skipped)\n") }
+    when(icache_main_dbg_reqfire){ printf("[DBG] FETCH addr=%x\n", icache.req.addr) }
+    when(resp.valid){ printf("[DBG] RESP  pc=%x inst=%x\n", resp.bits.pc, icache.resp.data) }
+    when(AXI4_port.rvalid){ printf("[DBG] AXI-R addr=%x data=%x resp=%d\n", refill_unit.resp.addr, AXI4_port.rdata, AXI4_port.rresp) }
     req_fifo.io.flush.get := flush
     when(flush){
       resp.valid := false.B
