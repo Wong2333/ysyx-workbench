@@ -6,7 +6,7 @@
 # 传入 NETLIST（比如 yosys-sta 的 netlist.fixed.v）时直接用它。
 # testbench 由 scripts/gen_netlist_tb.py 根据网表的端口自动生成。
 
-YOSYS_STA_HOME ?= /home/wjm/yosys-sta
+YOSYS_STA_HOME ?= /home/wjm/temp/sta-ci
 CELLS ?= $(YOSYS_STA_HOME)/pdk/nangate45/sim/cells.v
 
 NET_TB = $(SIM_DIR)/tb_netlist.v
