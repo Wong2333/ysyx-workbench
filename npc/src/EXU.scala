@@ -111,19 +111,13 @@ class ysyx_26030092_EXU extends Module{
     val branch_u = Module(new ysyx_26030092_BranchUnit)
     branch_u.pc        := pc_u.pc
     branch_u.alu       := AluResult
-    branch_u.rs1       := idu_out.bits.rs1_data
-    branch_u.rs2       := idu_out.bits.rs2_data
-    branch_u.csr_rdata := idu_out.bits.csr_rdata
     branch_u.mtvec     := mtvec
-    branch_u.branch_op := idu_out.bits.exu_ctl.branch_op
-    branch_u.jump_op   := idu_out.bits.exu_ctl.jump_op
-    branch_u.sys_op    := idu_out.bits.exu_ctl.sys_op
-    branch_u.is_excp   := idu_out.bits.is_excp
     branch_u.lsu_trap  := lsu_trap
+    branch_u.idu_in := idu_out.bits.to_branch
 
     pc_u.next_pc  := branch_u.next_pc
-    pc_u.jump     := lsu_trap || (branch_u.redirect && idu_out.fire && pc_cmp.hit)
-    pc_u.adv      := idu_out.fire && pc_cmp.hit && !lsu_trap
+    pc_u.jump     := branch_u.redirect && idu_out.fire && pc_cmp.hit
+    pc_u.adv      := idu_out.fire && pc_cmp.hit
 
     pc_cmp.pc        := idu_out.bits.decode.pc
     pc_cmp.pc_reg    := pc_u.pc

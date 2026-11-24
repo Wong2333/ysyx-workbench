@@ -46,6 +46,7 @@ class DecodeBundle extends Bundle{
 }
 
 class IDUBundle extends Bundle{
+    val to_branch = new branchBundle
     val decode = new DecodeBundle
     val exu_ctl = new EXUCTLBundle
     val rs1_data = UInt(32.W)
