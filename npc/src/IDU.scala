@@ -46,7 +46,6 @@ class DecodeBundle extends Bundle{
 }
 
 class IDUBundle extends Bundle{
-    val to_branch = new branchBundle
     val decode = new DecodeBundle
     val exu_ctl = new EXUCTLBundle
     val rs1_data = UInt(32.W)
@@ -55,6 +54,18 @@ class IDUBundle extends Bundle{
     val excp_code = UInt(32.W)
     val is_excp = Bool()
     val pc_valid = Bool()
+
+    def to_branch = {
+        val b = Wire(new branchBundle)
+        b.rs1       := rs1_data
+        b.rs2       := rs2_data
+        b.csr_rdata := csr_rdata
+        b.branch_op := exu_ctl.branch_op
+        b.jump_op   := exu_ctl.jump_op
+        b.sys_op    := exu_ctl.sys_op
+        b.is_excp   := is_excp
+        b
+    }
 }
 
 class StageWriteInfoBundle extends Bundle{
