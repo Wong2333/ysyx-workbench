@@ -53,6 +53,7 @@ class IDUBundle extends Bundle{
     val csr_rdata = UInt(32.W)
     val excp_code = UInt(32.W)
     val is_excp = Bool()
+    val pc_valid = Bool()
 }
 
 class StageWriteInfoBundle extends Bundle{
@@ -102,77 +103,51 @@ class ysyx_26030092_IDU extends Module{
         (out_comb.exu_ctl.sys_op === SysOp.mret)          -> "h341".U,
         (out_comb.exu_ctl.csr_op =/= CSROp.none)          -> out_comb.decode.imm(11,0)
     ))
-    val csr_read = out_comb.exu_ctl.sys_op === SysOp.mret || out_comb.exu_ctl.csr_op =/= CSROp.none
-    
-    val stall_rs1 = conflict(inst.rs1, wb_info)
-    val stall_rs2 = conflict(inst.rs2, wb_info)
-    val stall_csr = csr_read && csr_info.wen && csr_read_addr === csr_info.addr
+    val in_rs1_hit = conflict(inst.rs1, wb_info)
+    val in_rs2_hit = conflict(inst.rs2, wb_info)
+    val in_csr_hit = csr_info.wen && csr_read_addr === csr_info.addr
 
-    val forward_rs1_data  = wb_info.value
-    val forward_rs1_valid = stall_rs1 && wb_info.valid
-    val forward_rs2_data  = wb_info.value
-    val forward_rs2_valid = stall_rs2 && wb_info.valid
-    val forward_csr_data  = csr_info.value
-    val forward_csr_valid = stall_csr && csr_info.valid
-
-    val out_valid = RegInit(false.B)
-    in.ready := false.B
-    out.valid := out_valid
     out_comb.decode.inst := in.bits.inst
-
-    val out_reg = Reg(new IDUBundle)
-    out.bits := out_reg
-    
-    val out_reg_csr_write = out_reg.exu_ctl.csr_op =/= CSROp.none
-    val out_reg_csr_addr = MuxCase(0.U(12.W), Seq(
-        (out_reg.exu_ctl.sys_op === SysOp.mret)          -> "h341".U,
-        (out_reg.exu_ctl.csr_op =/= CSROp.none)          -> out_reg.decode.imm(11,0)
-    ))
-
-    val self_stall = (inst.rs2 === out_reg.decode.rd & out_reg.exu_ctl.reg_write) ||
-        (inst.rs1 === out_reg.decode.rd & out_reg.exu_ctl.reg_write) || 
-        ((csr_read_addr === out_reg_csr_addr) & out_reg_csr_write)
-    
+    out_comb.pc_valid := true.B
     RFS_ReadPort.RegReadPort.raddr1 := inst.rs1
     RFS_ReadPort.RegReadPort.raddr2 := inst.rs2
     RFS_ReadPort.CSRReadPort.CSRRAddr := csr_read_addr
 
-    out_comb.rs1_data := MuxCase(0.U, Seq(
-        !stall_rs1 -> RFS_ReadPort.RegReadPort.rdata1,
-        forward_rs1_valid -> forward_rs1_data
-    ))
-    out_comb.rs2_data := MuxCase(0.U, Seq(
-        !stall_rs2 -> RFS_ReadPort.RegReadPort.rdata2,
-        forward_rs2_valid -> forward_rs2_data
-    ))
-    
-    
-    out_comb.csr_rdata := MuxCase(0.U, Seq(
-        !stall_csr -> RFS_ReadPort.CSRReadPort.CSRRData,
-        forward_csr_valid -> forward_csr_data
-    ))
-    val rs1_used = WireDefault(false.B)
-    val rs2_used = WireDefault(false.B)
-    val csr_used = WireDefault(false.B)
+    out_comb.rs1_data := Mux(in_rs1_hit && wb_info.valid, wb_info.value, RFS_ReadPort.RegReadPort.rdata1)
+    out_comb.rs2_data := Mux(in_rs2_hit && wb_info.valid, wb_info.value, RFS_ReadPort.RegReadPort.rdata2)
+    out_comb.csr_rdata := Mux(in_csr_hit && csr_info.valid, csr_info.value, RFS_ReadPort.CSRReadPort.CSRRData)
 
-    val rs1_valid = !rs1_used || !stall_rs1 || forward_rs1_valid
-    val rs2_valid = !rs2_used || !stall_rs2 || forward_rs2_valid
-    val csr_valid = !csr_used || !stall_csr || forward_csr_valid
+    val slot       = Reg(new IDUBundle)
+    val slot_valid = RegInit(false.B)
 
-    val read_reg_valid = rs1_valid && rs2_valid && csr_valid
-    
+    val slot_csr_addr = MuxCase(0.U(12.W), Seq(
+        (slot.exu_ctl.sys_op === SysOp.mret) -> "h341".U,
+        (slot.exu_ctl.csr_op =/= CSROp.none) -> slot.decode.imm(11,0)
+    ))
+    val slot_inst    = slot.decode.inst.asTypeOf(new InstDecode)
+    val slot_rs1_hit = conflict(slot_inst.rs1, wb_info)
+    val slot_rs2_hit = conflict(slot_inst.rs2, wb_info)
+    val slot_csr_hit = csr_info.wen && slot_csr_addr === csr_info.addr
+    val slot_stall   = ((slot_rs1_hit || slot_rs2_hit) && !wb_info.valid) ||
+                       (slot_csr_hit && !csr_info.valid)
 
-    when(out.fire | ~out_valid){
-        out_valid := false.B
-        when(in.valid && read_reg_valid && ~(self_stall & out_valid)){
-            in.ready := true.B
-            out_valid := true.B
-            out_reg := out_comb
-        }
-    }
+    in.ready   := !flush && (!slot_valid || out.fire)
+    out.valid  := slot_valid & !slot_stall
+    out.bits   := slot
+    out.bits.pc_valid := slot_valid
+    out.bits.rs1_data  := Mux(slot_rs1_hit && wb_info.valid, wb_info.value, slot.rs1_data)
+    out.bits.rs2_data  := Mux(slot_rs2_hit && wb_info.valid, wb_info.value, slot.rs2_data)
+    out.bits.csr_rdata := Mux(slot_csr_hit && csr_info.valid, csr_info.value, slot.csr_rdata)
+
     when(flush){
-        in.ready := false.B
-        out_valid := false.B
+        slot_valid := false.B
+    }.otherwise{
+        when(in.fire){
+            slot       := out_comb
+            slot_valid := true.B
+        }.elsewhen(out.fire){
+            slot_valid := false.B
+        }
     }
 
     PerfCounter("IDU_pipe_idle") := !in.valid
@@ -210,7 +185,6 @@ class ysyx_26030092_IDU extends Module{
         is("b0010011".U){
             out_comb.decode.imm := inst.immI
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-            rs1_used := true.B
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             out_comb.exu_ctl.reg_write := true.B
             out_comb.exu_ctl.wb_src := WBSrc.alu
@@ -258,7 +232,6 @@ class ysyx_26030092_IDU extends Module{
         is("b1100111".U){
             out_comb.decode.imm := inst.immI
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-            rs1_used := true.B
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             when(inst.funct3 === "b000".U){//jalr
                 out_comb.exu_ctl.jump_op := JumpOp.jump
@@ -281,17 +254,13 @@ class ysyx_26030092_IDU extends Module{
                 out_comb.decode.rd := inst.rd
                 out_comb.decode.imm := inst.immI
                 out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-                rs1_used := true.B
                 out_comb.exu_ctl.ALU_Src2 := ALUSrc2.csr
-                csr_used := true.B
                 out_comb.exu_ctl.ALU_Control := ALUOp.or
                 out_comb.exu_ctl.csr_op := CSROp.csrrs
                 out_comb.exu_ctl.reg_write := true.B
                 out_comb.exu_ctl.wb_src := WBSrc.csr
                 invalid := false.B
             }.elsewhen(inst.funct3 === "b001".U){// csrws
-                rs1_used := true.B
-                csr_used := true.B
                 out_comb.decode.rd := inst.rd
                 out_comb.decode.imm := inst.immI
                 out_comb.exu_ctl.csr_op := CSROp.csrrw
@@ -300,7 +269,6 @@ class ysyx_26030092_IDU extends Module{
                 invalid := false.B
             }.elsewhen(inst.funct3 === 0.U && inst.rd === 0.U && 
                     inst.rs1 === 0.U && inst.immI === "b001100000010".U){// mret
-                    csr_used := true.B
                     out_comb.exu_ctl.sys_op := SysOp.mret
                     invalid := false.B
             }.elsewhen(inst.funct3 === "b000".U && inst.immI === 0.U && 
@@ -315,9 +283,7 @@ class ysyx_26030092_IDU extends Module{
         }
         is("b0110011".U){
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-            rs1_used := true.B
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.rs2
-            rs2_used := true.B
             out_comb.exu_ctl.reg_write := true.B
             out_comb.exu_ctl.wb_src := WBSrc.alu
             when(inst.funct3 === "b000".U && inst.funct7 === "b0000000".U){// add
@@ -387,7 +353,6 @@ class ysyx_26030092_IDU extends Module{
         }
         is("b0000011".U){
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-            rs1_used := true.B
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             out_comb.decode.imm := inst.immI
             out_comb.exu_ctl.ALU_Control := ALUOp.add
@@ -415,8 +380,6 @@ class ysyx_26030092_IDU extends Module{
         }
         is("b0100011".U){
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
-            rs1_used := true.B
-            rs2_used := true.B
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             out_comb.decode.imm := inst.immS
             out_comb.exu_ctl.ALU_Control := ALUOp.add
@@ -445,8 +408,6 @@ class ysyx_26030092_IDU extends Module{
         }
 
         is("b1100011".U){// branch
-            rs1_used := true.B
-            rs2_used := true.B
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.pc
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             out_comb.decode.imm := inst.immB
@@ -492,19 +453,17 @@ class ysyx_26030092_IDU extends Module{
         out_comb.excp_code := in.bits.excp_code
     }
 
-    val fired_inst = out_reg.decode.inst.asTypeOf(new InstDecode)
+    val fired_inst = slot.decode.inst.asTypeOf(new InstDecode)
     PerfCounter("IDU_calc") := (fired_inst.opcode === "b0010011".U || fired_inst.opcode === "b0110011".U) && out.fire
     PerfCounter("IDU_jump") := (fired_inst.opcode === "b1100111".U || fired_inst.opcode === "b1101111".U) && out.fire
     PerfCounter("IDU_csr") := (fired_inst.opcode === "b1110011".U) && out.fire
     PerfCounter("IDU_load") := (fired_inst.opcode === "b0000011".U) && out.fire
     PerfCounter("IDU_store") := (fired_inst.opcode === "b0100011".U) && out.fire
     PerfCounter("IDU_branch") := (fired_inst.opcode === "b1100011".U) && out.fire
-    // RAW 数据冒险导致的停顿拍数（无输入时 inst 是无效组合值，排除）
-    PerfCounter("IDU_RAW_stall_cycles") := ~read_reg_valid && in.valid
-    PerfCounter("IDU_idle_cycle") := !out_valid & !in.valid
-    PerfCounter("IDU_stall_by_EXU_cycle") := out_valid & !out.ready
+    PerfCounter("IDU_slot_stall_cycles") := slot_valid && slot_stall
+    PerfCounter("IDU_idle_cycle") := !slot_valid & !in.valid
+    PerfCounter("IDU_stall_by_EXU_cycle") := slot_valid & !out.ready
     val idu_internal_stall = in.valid && !in.ready && !out.fire
     PerfCounter("IDU_internal_stall_cycles") := idu_internal_stall
-    // flush 时被丢弃的已译码指令（out_reg 在途
-    PerfCounter("IDU_flush_discard") := flush && out_valid
+    PerfCounter("IDU_flush_discard") := flush && slot_valid
 }
