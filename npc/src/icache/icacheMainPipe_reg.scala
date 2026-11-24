@@ -51,10 +51,13 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
       refilling := false.B
     }
 
+    // 取指收到错误响应（比如访问了不存在的地址）时，不能把这个字当成指令：
+    // 不写 cache、不交付给 IFU，让这次取指作废并挂住，等紧随其后的 flush 冲刷掉。
+    val refill_err = AXI4_port.rvalid && (AXI4_port.rresp =/= 0.U)
     icache.refill.addr := refill_unit.resp.addr
     icache.refill.data := refill_unit.resp.data
     icache.refill.last := refill_unit.resp.last
-    icache.refill.valid := refill_unit.resp.valid
+    icache.refill.valid := refill_unit.resp.valid && !refill_err
 
     resp.bits.pc := Cat(req_fifo.io.deq.bits, 0.U(2.W))
     resp.bits.inst := icache.resp.data
@@ -64,17 +67,8 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port <> refill_unit.AXI4_port
 
-    val excp_code = Reg(UInt(32.W))
-    val excp_trap = RegInit(false.B)
-    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){// 错误处理
-      excp_code := 0.U
-      excp_trap := true.B
-    }
-    when(resp.valid & resp.ready){
-      excp_trap := false.B
-    }
     resp.bits.excp_code := 0.U
-    resp.bits.is_excp := excp_trap
+    resp.bits.is_excp := false.B
 
     req_fifo.io.flush.get := flush
     when(flush){
