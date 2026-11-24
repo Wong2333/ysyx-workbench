@@ -42,12 +42,12 @@ class ysyx_26030092_IFU extends Module{
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
     PC_reg.adv := icahce_main_pipe_fire
     PC_reg.jump := false.B
-    PC_reg.pc_next := 0.U
+    PC_reg.next_pc := 0.U
 
     when(flush){                       // flush 优先级最高，放最后覆盖
         icache_main_pipe.req.valid := false.B
         PC_reg.jump := true.B
-        PC_reg.pc_next := RedirectPC
+        PC_reg.next_pc := RedirectPC
         out.valid := false.B
     }
 
