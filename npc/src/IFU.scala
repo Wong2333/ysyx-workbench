@@ -69,6 +69,6 @@ class ysyx_26030092_IFU extends Module{
     PerfCounter("IFU_wait_resp")    := icache_main_pipe.req.ready && ~icache_main_pipe.resp.valid && ~flush
     PerfCounter("IFU_fetch")        := out.fire
 
-    // 取指遇到错误响应（例如预取越过了存储器末尾）不再结束仿真：
-    // 由 icacheMainPipe 丢弃该次取指，等紧随其后的 flush 冲刷掉即可。
+    // 取指遇到错误响应（例如投机取指越过了存储器末尾）不再结束仿真：
+    // icacheMainPipe 会把该字填成 nop，之后的跳转指令解析时会 flush 掉这些多余取指。
 }
