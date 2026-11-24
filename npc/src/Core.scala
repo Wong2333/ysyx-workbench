@@ -52,6 +52,8 @@ class ysyx_26030092 extends Module{
     EXU_u.wbu_in <> WBU_u.in
     EXU_u.mtvec := RFS_u.mtvec_out
 
+    CLINT_u.mtime := RFS_u.mtime_out
+
     RFS_u.WriteRegPort := WBU_u.WriteRegPort
     RFS_u.CSRWritePort := WBU_u.CSRWritePort
     RFS_u.ExceptionPort := WBU_u.ExceptionPort
