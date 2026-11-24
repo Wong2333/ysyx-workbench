@@ -13,18 +13,6 @@ class instEntry extends Bundle{
     val is_excp = Bool()
 }
 
-class ysyx_26030092_PCBlackBox extends ExtModule{
-    val io = FlatIO(new Bundle {
-        val clock = Input(Clock())
-        val reset = Input(Reset())
-        val pc_next = Input(UInt(32.W))
-        val pc_we = Input(Bool())
-        val pc_4 = Input(Bool())
-        val pc = Output(UInt(32.W))
-    })
-    addResource("/PCBlackBox.v")
-}
-
 class ysyx_26030092_IFU extends Module{
 
     val out = IO(Decoupled(new instEntry))
@@ -35,9 +23,7 @@ class ysyx_26030092_IFU extends Module{
 
     val AXI4_port = IO(new AXI4Bundle)
 
-    val PC_reg = Module(new ysyx_26030092_PCBlackBox())
-    PC_reg.io.clock := clock
-    PC_reg.io.reset := reset
+    val PC_reg = Module(new ysyx_26030092_PCReg)
 
     val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 1, hasFlush = true)) }
     inst_queue.io.flush.get := flush
@@ -46,7 +32,7 @@ class ysyx_26030092_IFU extends Module{
     icache_main_pipe.AXI4_port <> AXI4_port
     icache_main_pipe.icache_flush := flush_icache
     icache_main_pipe.req.valid := true.B
-    icache_main_pipe.req.addr := PC_reg.io.pc
+    icache_main_pipe.req.addr := PC_reg.pc
     icache_main_pipe.flush := flush
 
     inst_queue.io.enq <> icache_main_pipe.resp
@@ -54,14 +40,14 @@ class ysyx_26030092_IFU extends Module{
     out <> inst_queue.io.deq
 
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
-    PC_reg.io.pc_4 := icahce_main_pipe_fire
-    PC_reg.io.pc_we := false.B
-    PC_reg.io.pc_next := 0.U
+    PC_reg.adv := icahce_main_pipe_fire
+    PC_reg.jump := false.B
+    PC_reg.pc_next := 0.U
 
     when(flush){                       // flush 优先级最高，放最后覆盖
         icache_main_pipe.req.valid := false.B
-        PC_reg.io.pc_we := true.B
-        PC_reg.io.pc_next := RedirectPC
+        PC_reg.jump := true.B
+        PC_reg.pc_next := RedirectPC
         out.valid := false.B
     }
 

@@ -106,13 +106,11 @@ class ysyx_26030092_EXU extends Module{
     val PCAddFour = idu_out.bits.decode.pc + 4.U
 
     val branch_u = Module(new ysyx_26030092_BranchUnit)
-    val pc_u = Module(new ysyx_26030092_PCBlackBox)
-    pc_u.io.clock   := clock
-    pc_u.io.reset   := reset
-    pc_u.io.pc_next := branch_u.next_pc
-    pc_u.io.pc_we   := branch_u.jump
-    pc_u.io.pc_4    := branch_u.adv
-    val pc = pc_u.io.pc
+    val pc_u = Module(new ysyx_26030092_PCReg)
+    pc_u.next_pc := branch_u.next_pc
+    pc_u.jump    := branch_u.jump
+    pc_u.adv     := branch_u.adv
+    val pc = pc_u.pc
 
     branch_u.pc        := pc
     branch_u.alu       := AluResult
@@ -166,7 +164,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && pc_hit // can accept
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit
