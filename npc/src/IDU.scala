@@ -54,17 +54,29 @@ class IDUBundle extends Bundle{
     val excp_code = UInt(32.W)
     val is_excp = Bool()
     val pc_valid = Bool()
+
+    def to_branch = {
+        val b = Wire(new branchBundle)
+        b.rs1       := rs1_data
+        b.rs2       := rs2_data
+        b.csr_rdata := csr_rdata
+        b.branch_op := exu_ctl.branch_op
+        b.jump_op   := exu_ctl.jump_op
+        b.sys_op    := exu_ctl.sys_op
+        b.is_excp   := is_excp
+        b
+    }
 }
 
 class StageWriteInfoBundle extends Bundle{
-    val wen   = Output(Bool())    // 本拍该阶段正在写寄存器（含阶段有效性）
+    val wen   = Output(Bool()) 
     val rd    = Output(UInt(5.W)) 
     val value = Output(UInt(32.W))
     val valid = Output(Bool())
 }
 
 class CSRWriteInfoBundle extends Bundle{
-    val wen   = Output(Bool())    // 本拍该阶段正在写 CSR（含阶段有效性）
+    val wen   = Output(Bool())
     val addr  = Output(UInt(12.W))
     val value = Output(UInt(32.W))
     val valid = Output(Bool())

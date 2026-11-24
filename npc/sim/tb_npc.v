@@ -98,7 +98,7 @@ module tb_npc;
     cycles <= cycles + 1;
     if (!reset && dut.WBU_u.ebreak.ebreak_trap) begin
       $display("[iverilog] EBREAK: 程序结束, a0 = 0x%08x, pc = 0x%08x, cycles = %0d",
-               dut.RFS_u.Reg_u.rf[10], dut.IFU_u.PC_reg.PC, cycles);
+               dut.RFS_u.Reg_u.rf[10], dut.IFU_u.PC_reg.u.PC, cycles);
       $finish;
     end
     if (cycles > max_cycles) begin

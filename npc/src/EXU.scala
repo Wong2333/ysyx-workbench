@@ -105,35 +105,26 @@ class ysyx_26030092_EXU extends Module{
     AluResult := ALU_u.out
     val PCAddFour = idu_out.bits.decode.pc + 4.U
 
-    val pc_u   = Module(new ysyx_26030092_PCReg)
-    val pc_cmp = Module(new ysyx_26030092_PCCompare)
-
     val branch_u = Module(new ysyx_26030092_BranchUnit)
-    branch_u.pc        := pc_u.pc
+    val pc_u = Module(new ysyx_26030092_PCReg)
+    pc_u.next_pc := branch_u.next_pc
+    pc_u.jump    := branch_u.jump
+    pc_u.adv     := branch_u.adv
+    val pc = pc_u.pc
+
+    branch_u.pc        := pc
     branch_u.alu       := AluResult
-    branch_u.rs1       := idu_out.bits.rs1_data
-    branch_u.rs2       := idu_out.bits.rs2_data
-    branch_u.csr_rdata := idu_out.bits.csr_rdata
     branch_u.mtvec     := mtvec
-    branch_u.branch_op := idu_out.bits.exu_ctl.branch_op
-    branch_u.jump_op   := idu_out.bits.exu_ctl.jump_op
-    branch_u.sys_op    := idu_out.bits.exu_ctl.sys_op
-    branch_u.is_excp   := idu_out.bits.is_excp
     branch_u.lsu_trap  := lsu_trap
+    branch_u.idu_in    := idu_out.bits.to_branch
+    branch_u.fire      := idu_out.fire
 
-    pc_u.next_pc  := branch_u.next_pc
-    pc_u.jump     := lsu_trap || (branch_u.redirect && idu_out.fire && pc_cmp.hit)
-    pc_u.adv      := idu_out.fire && pc_cmp.hit && !lsu_trap
-
-    pc_cmp.pc        := idu_out.bits.decode.pc
-    pc_cmp.pc_reg    := pc_u.pc
-    pc_cmp.pc_valid  := idu_out.bits.pc_valid
-    pc_cmp.lsu_trap  := lsu_trap
+    val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
 
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
-    flush      := pc_cmp.flush | fencei
-    redirectPC := pc_u.pc
+    flush      := !pc_hit | fencei
+    redirectPC := pc
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)
@@ -173,7 +164,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush // can accept
+    idu_out.ready := !lsu_busy && !flush // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit
