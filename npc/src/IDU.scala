@@ -69,14 +69,14 @@ class IDUBundle extends Bundle{
 }
 
 class StageWriteInfoBundle extends Bundle{
-    val wen   = Output(Bool())    // 本拍该阶段正在写寄存器（含阶段有效性）
+    val wen   = Output(Bool()) 
     val rd    = Output(UInt(5.W)) 
     val value = Output(UInt(32.W))
     val valid = Output(Bool())
 }
 
 class CSRWriteInfoBundle extends Bundle{
-    val wen   = Output(Bool())    // 本拍该阶段正在写 CSR（含阶段有效性）
+    val wen   = Output(Bool())
     val addr  = Output(UInt(12.W))
     val value = Output(UInt(32.W))
     val valid = Output(Bool())

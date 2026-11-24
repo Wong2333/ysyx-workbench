@@ -115,14 +115,17 @@ class ysyx_26030092_EXU extends Module{
     branch_u.lsu_trap  := lsu_trap
     branch_u.idu_in := idu_out.bits.to_branch
 
-    pc_u.next_pc  := branch_u.next_pc
-    pc_u.jump     := branch_u.redirect && (lsu_trap || (idu_out.fire && pc_cmp.hit))
-    pc_u.adv      := idu_out.fire && pc_cmp.hit && !lsu_trap
-
     pc_cmp.pc        := idu_out.bits.decode.pc
     pc_cmp.pc_reg    := pc_u.pc
     pc_cmp.pc_valid  := idu_out.bits.pc_valid
     pc_cmp.lsu_trap  := lsu_trap
+
+    branch_u.fire := idu_out.fire
+    branch_u.hit  := pc_cmp.hit
+
+    pc_u.next_pc  := branch_u.next_pc
+    pc_u.jump     := branch_u.jump
+    pc_u.adv      := branch_u.adv
 
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
