@@ -51,8 +51,15 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
       refilling := false.B
     }
 
+    val AXI4_port = IO(new AXI4Bundle)
+    AXI4_port <> refill_unit.AXI4_port
+
+    // 取指收到错误响应（例如投机取指越过了存储器末尾）时，把这个字填成 nop：
+    // 既不会把垃圾当指令执行，也不会在错误地址上无限重试（重试会堵住 refill 通路）。
+    // 之后流水线执行几条 nop，紧随其后的跳转指令在 EXU 解析后会 flush 掉 IFU。
+    val refill_err = AXI4_port.rvalid && (AXI4_port.rresp =/= 0.U)
     icache.refill.addr := refill_unit.resp.addr
-    icache.refill.data := refill_unit.resp.data
+    icache.refill.data := Mux(refill_err, "h00000013".U, refill_unit.resp.data)  // nop = addi x0, x0, 0
     icache.refill.last := refill_unit.resp.last
     icache.refill.valid := refill_unit.resp.valid
 
@@ -61,20 +68,8 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
     resp.valid := hit
     req_fifo.io.deq.ready := resp.ready & resp.valid
 
-    val AXI4_port = IO(new AXI4Bundle)
-    AXI4_port <> refill_unit.AXI4_port
-
-    val excp_code = Reg(UInt(32.W))
-    val excp_trap = RegInit(false.B)
-    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){// 错误处理
-      excp_code := 0.U
-      excp_trap := true.B
-    }
-    when(resp.valid & resp.ready){
-      excp_trap := false.B
-    }
     resp.bits.excp_code := 0.U
-    resp.bits.is_excp := excp_trap
+    resp.bits.is_excp := false.B
 
     req_fifo.io.flush.get := flush
     when(flush){
@@ -84,6 +79,5 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
       req_fifo.io.enq.valid := false.B
       req_fifo.io.deq.ready := false.B
       refilling := false.B
-      excp_trap := false.B
     }
 }
