@@ -4,13 +4,13 @@ import chisel3._
 import chisel3.util._
 
 class branchBundle extends Bundle{
-    val rs1       = IO(Input(UInt(32.W)))
-    val rs2       = IO(Input(UInt(32.W)))
-    val csr_rdata = IO(Input(UInt(32.W)))
-    val branch_op = IO(Input(BranchOp()))
-    val jump_op   = IO(Input(JumpOp()))
-    val sys_op    = IO(Input(SysOp()))
-    val is_excp   = IO(Input(Bool()))
+    val rs1       = UInt(32.W)
+    val rs2       = UInt(32.W)
+    val csr_rdata = UInt(32.W)
+    val branch_op = BranchOp()
+    val jump_op   = JumpOp()
+    val sys_op    = SysOp()
+    val is_excp   = Bool()
 }
 
 class ysyx_26030092_BranchUnit extends Module{
