@@ -52,7 +52,7 @@ class ysyx_26030092_icacheRefillUnit_reg extends Module{
             req.ready := true.B
             when(req.valid){
                 line_addr := Cat(req.addr(31,4), 0.U(4.W))
-                burst     := req.addr(31,28) === "h8".U
+                burst     := false.B
                 word_cnt  := 0.U
                 state     := s_ar
             }
