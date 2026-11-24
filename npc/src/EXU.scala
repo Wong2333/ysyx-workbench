@@ -121,9 +121,11 @@ class ysyx_26030092_EXU extends Module{
     branch_u.idu_in    := idu_out.bits.to_branch
     branch_u.fire      := idu_out.fire
 
+    val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
+
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
-    flush      := (branch_u.jump && branch_u.next_pc =/= pc + 4.U) | fencei
+    flush      := !pc_hit | fencei
     redirectPC := pc
 
     // 构建wb wire
@@ -164,7 +166,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) // can accept
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && pc_hit // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit
