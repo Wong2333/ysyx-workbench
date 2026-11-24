@@ -69,11 +69,6 @@ class ysyx_26030092_IFU extends Module{
     PerfCounter("IFU_wait_resp")    := icache_main_pipe.req.ready && ~icache_main_pipe.resp.valid && ~flush
     PerfCounter("IFU_fetch")        := out.fire
 
-    // 只用于仿真，检测访存错误
-    val ebreak = Module(new ysyx_26030092_EbreakBlackBox())
-    ebreak.io.ebreak_trap := false.B
-    when(AXI4_port.rvalid && AXI4_port.rready && AXI4_port.rresp =/= 0.U){
-        printf("AXI4 error\n")
-        ebreak.io.ebreak_trap := true.B
-    }
+    // 取指遇到错误响应（例如预取越过了存储器末尾）不再结束仿真：
+    // 由 icacheMainPipe 丢弃该次取指，等紧随其后的 flush 冲刷掉即可。
 }
