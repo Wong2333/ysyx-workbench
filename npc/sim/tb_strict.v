@@ -119,10 +119,10 @@ module tb_strict;
     cycles <= cycles + 1;
     if (dbg_on && (cycles % 50000) == 0)
       $display("[dbg] cyc=%0d pc=0x%08x ar=%0d r=%0d aw=%0d w=%0d", cycles,
-               dut.IFU_u.PC_reg.PC, ar_cnt, r_cnt, aw_cnt, w_cnt);
+               dut.IFU_u.PC_reg.u.PC, ar_cnt, r_cnt, aw_cnt, w_cnt);
     if (!reset && dut.WBU_u.ebreak.ebreak_trap) begin
       $display("[iverilog] EBREAK: 程序结束, a0 = 0x%08x, pc = 0x%08x, cycles = %0d",
-               dut.RFS_u.Reg_u.rf[10], dut.IFU_u.PC_reg.PC, cycles);
+               dut.RFS_u.Reg_u.rf[10], dut.IFU_u.PC_reg.u.PC, cycles);
       $finish;
     end
     if (cycles > max_cycles) begin
@@ -152,7 +152,7 @@ module tb_strict;
     cycles <= cycles + 1;
     if (dbg_on && (cycles % 50000) == 0)
       $display("[dbg] cyc=%0d pc=0x%08x ar=%0d r=%0d aw=%0d w=%0d", cycles,
-               dut.IFU_u.PC_reg.PC, ar_cnt, r_cnt, aw_cnt, w_cnt);
+               dut.IFU_u.PC_reg.u.PC, ar_cnt, r_cnt, aw_cnt, w_cnt);
     idle <= axi_active ? 0 : idle + 1;
     if (cycles > max_cycles) begin
       $display("[iverilog] 网表仿真结束: 达到周期上限 %0d", cycles);
