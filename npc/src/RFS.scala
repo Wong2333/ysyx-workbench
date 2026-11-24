@@ -58,6 +58,7 @@ class ysyx_26030092_RFS extends Module {
     val ExceptionPort = IO(Input(new ExceptionInfoBundle))
 
     val mtvec_out = IO(Output(UInt(32.W)))
+    val mtime_out = IO(Output(UInt(64.W)))
 
     val Reg_u = Module(new ysyx_26030092_RegBlackBox())
     Reg_u.io.raddr1 := RFS_ReadPort.RegReadPort.raddr1
@@ -77,6 +78,7 @@ class ysyx_26030092_RFS extends Module {
     val mstatus = RegInit("h1800".U(32.W))
 
     mtvec_out := mtvec
+    mtime_out := mcycle
 
     RFS_ReadPort.CSRReadPort.CSRRData := 0.U
     switch(RFS_ReadPort.CSRReadPort.CSRRAddr){

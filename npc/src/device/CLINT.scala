@@ -8,14 +8,9 @@ class ysyx_26030092_CLINT extends Module{
     val AXI4_port = IO(Flipped(new AXI4Bundle))
 
     AXI4_port.initSlave()
-    val mtime_lo = RegInit(0.U(32.W))
-    val mtime_hi = RegInit(0.U(32.W))
-    mtime_lo := mtime_lo + 1.U
-    when(mtime_lo === "hffffffff".U){
-        mtime_hi := mtime_hi + 1.U
-    }
+    val mtime = IO(Input(UInt(64.W)))
 
-    val out_reg = Reg(UInt(32.W))
+    val out_hi = Reg(Bool())
 
     val s_idle :: s_busy :: Nil = Enum(2)
     val status = RegInit(s_idle)
@@ -26,13 +21,12 @@ class ysyx_26030092_CLINT extends Module{
             // 避免"范围被拦截但地址不认识"导致 master 永远等不到响应
             AXI4_port.arready := true.B
             when(AXI4_port.arvalid){
-                out_reg := Mux(AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U, mtime_hi,
-                           Mux(AXI4_port.araddr === (0x02000000L + 0XBFF8).U, mtime_lo, 0.U))
+                out_hi := AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U
                 status := s_busy
             }
         }
         is(s_busy){
-            AXI4_port.rdata := out_reg
+            AXI4_port.rdata := Mux(out_hi, mtime(63,32), mtime(31,0))
             AXI4_port.rresp := false.B
             AXI4_port.rlast := true.B
             AXI4_port.rvalid := true.B
