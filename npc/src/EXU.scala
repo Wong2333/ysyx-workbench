@@ -105,32 +105,26 @@ class ysyx_26030092_EXU extends Module{
     AluResult := ALU_u.out
     val PCAddFour = idu_out.bits.decode.pc + 4.U
 
-    val pc_u   = Module(new ysyx_26030092_PCReg)
-    val pc_cmp = Module(new ysyx_26030092_PCCompare)
-
     val branch_u = Module(new ysyx_26030092_BranchUnit)
-    branch_u.pc        := pc_u.pc
+    val pc_u = Module(new ysyx_26030092_PCBlackBox)
+    pc_u.io.clock   := clock
+    pc_u.io.reset   := reset
+    pc_u.io.pc_next := branch_u.next_pc
+    pc_u.io.pc_we   := branch_u.jump
+    pc_u.io.pc_4    := branch_u.adv
+    val pc = pc_u.io.pc
+
+    branch_u.pc        := pc
     branch_u.alu       := AluResult
     branch_u.mtvec     := mtvec
     branch_u.lsu_trap  := lsu_trap
-    branch_u.idu_in := idu_out.bits.to_branch
-
-    pc_cmp.pc        := idu_out.bits.decode.pc
-    pc_cmp.pc_reg    := pc_u.pc
-    pc_cmp.pc_valid  := idu_out.bits.pc_valid
-    pc_cmp.lsu_trap  := lsu_trap
-
-    branch_u.fire := idu_out.fire
-    branch_u.hit  := pc_cmp.hit
-
-    pc_u.next_pc  := branch_u.next_pc
-    pc_u.jump     := branch_u.jump
-    pc_u.adv      := branch_u.adv
+    branch_u.idu_in    := idu_out.bits.to_branch
+    branch_u.fire      := idu_out.fire
 
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
-    flush      := pc_cmp.flush | fencei
-    redirectPC := pc_u.pc
+    flush      := (branch_u.jump && branch_u.next_pc =/= pc + 4.U) | fencei
+    redirectPC := pc
 
     // 构建wb wire
     val wb_data = Wire(new WriteBackPortBundle)
@@ -170,7 +164,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) && !flush // can accept
+    idu_out.ready := !lsu_busy && Mux(is_mem, lsu_in.ready, true.B) // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit

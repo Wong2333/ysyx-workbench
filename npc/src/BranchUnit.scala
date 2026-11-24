@@ -25,7 +25,6 @@ class ysyx_26030092_BranchUnit extends Module{
     val mtvec     = IO(Input(UInt(32.W)))
     val lsu_trap  = IO(Input(Bool()))
     val fire      = IO(Input(Bool()))
-    val hit       = IO(Input(Bool()))
     val idu_in    = IO(Input(new branchBundle))
 
     val blt  = idu_in.rs1.asSInt < idu_in.rs2.asSInt
@@ -43,8 +42,8 @@ class ysyx_26030092_BranchUnit extends Module{
     val taken   = branch_cond || is_jump
 
     redirect := taken || is_mret || idu_in.is_excp || lsu_trap
-    jump     := lsu_trap || (redirect && fire && hit)
-    adv      := fire && hit
+    jump     := lsu_trap || (redirect && fire)
+    adv      := fire
     next_pc  := Mux(lsu_trap, mtvec, MuxCase(0.U, Seq(
         taken   -> alu,
         is_mret -> idu_in.csr_rdata,
