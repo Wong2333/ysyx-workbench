@@ -78,6 +78,5 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
       req_fifo.io.enq.valid := false.B
       req_fifo.io.deq.ready := false.B
       refilling := false.B
-      excp_trap := false.B
     }
 }
