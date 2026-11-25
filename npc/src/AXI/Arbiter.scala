@@ -14,11 +14,6 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
     }
     slave.initMaster()
 
-    val sel_bits = log2Ceil(n_in)
-
-    val ar_req_bits = VecInit(master.map(_.arvalid)).asUInt
-    val ar_sel  = PriorityEncoder(ar_req_bits)
-
     when(master(0).arvalid){
         slave.connectARFrom(master(0), true.B)
         slave.arid := 0.U
@@ -34,7 +29,7 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
         master(i).rdata  := slave.rdata
         master(i).rresp  := slave.rresp
         master(i).rlast  := slave.rlast
-        slave.rready := master(i).rready && slave.rid === i.U
+        slave.rready := master(i).rready && (slave.rid === i.U)
     }
 
     slave.connectAWFrom(master(1), true.B)
