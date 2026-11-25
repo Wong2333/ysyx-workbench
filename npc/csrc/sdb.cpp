@@ -222,7 +222,7 @@ static uint32_t commit_pc;
 static bool has_commit = false;
 static bool ever_committed = false;
 static uint32_t last_commit_pc = 0;
-// commit 附带的访存信息（供 difftest 判断是否跳过 NEMU）
+
 int commit_mem_valid = 0;
 uint32_t commit_mem_addr = 0;
 uint32_t commit_inst = 0;
