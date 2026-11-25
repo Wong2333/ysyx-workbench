@@ -56,5 +56,4 @@ class ysyx_26030092_BranchUnit extends Module{
     bpu_train.taken  := taken
     bpu_train.pc     := pc
     bpu_train.target := next_pc
-    bpu_train.jal    := is_jump
 }
