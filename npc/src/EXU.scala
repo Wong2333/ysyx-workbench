@@ -133,14 +133,14 @@ class ysyx_26030092_EXU extends Module{
     val wb_data = Wire(new WriteBackPortBundle)
     wb_data := 0.U.asTypeOf(new WriteBackPortBundle)
     wb_data.RegWaddr := idu_out.bits.decode.rd
-    wb_data.RegWrite := idu_out.bits.exu_ctl.reg_write && !idu_out.bits.is_excp
+    wb_data.RegWrite := idu_out.bits.exu_ctl.reg_write
     wb_data.PC := idu_out.bits.decode.pc
     switch(idu_out.bits.exu_ctl.wb_src){
         is(WBSrc.alu)      { wb_data.RegWdata := AluResult }
         is(WBSrc.pc_plus4) { wb_data.RegWdata := PCAddFour }
         is(WBSrc.csr)      { wb_data.RegWdata := idu_out.bits.csr_rdata }
     }
-    when(idu_out.bits.exu_ctl.csr_op =/= CSROp.none && !idu_out.bits.is_excp){
+    when(idu_out.bits.exu_ctl.csr_op =/= CSROp.none){
         wb_data.CSRAddr := idu_out.bits.decode.imm(11,0)
         wb_data.CSRWrite := true.B
         wb_data.CSRData := Mux(idu_out.bits.exu_ctl.csr_op === CSROp.csrrw,
