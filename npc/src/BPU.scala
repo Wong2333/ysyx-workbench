@@ -38,7 +38,7 @@ class ysyx_26030092_BPU extends Module{
 
     out.valid   := hit.reduce(_ || _)
     out.take    := Mux1H(hit, (0 until 2).map(i => btb(i).jal || btb(i).counter(1)))
-    out.next_pc := Cat(pc(31,12), Mux1H(hit, (0 until 2).map(_.target)), 0.U(2.W))
+    out.next_pc := Cat(pc(31,12), Mux1H(hit, (0 until 2).map(i => btb(i).target)), 0.U(2.W))
 
     val ttag = train.pc(7,0)
     val thit = (0 until 2).map(i => btb(i).valid && btb(i).tag === ttag)
