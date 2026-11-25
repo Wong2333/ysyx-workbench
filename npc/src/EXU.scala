@@ -73,6 +73,7 @@ class ysyx_26030092_EXU extends Module{
     val wb_slot_commit = Reg(new CommitInfoBundle)
     val lsu_busy       = RegInit(false.B)
     val fencei_reg = RegInit(false.B)
+    val commit_info_comb = Wire(new CommitInfoBundle)
 
     val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
 
@@ -196,7 +197,6 @@ class ysyx_26030092_EXU extends Module{
 
 
     // DEBUG
-    val commit_info_comb = Wire(new CommitInfoBundle)
     commit_info_comb.mem := is_mem
     commit_info_comb.mem_addr := AluResult
     commit_info_comb.pc := idu_out.bits.decode.pc
