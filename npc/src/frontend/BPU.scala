@@ -60,6 +60,7 @@ class ysyx_26030092_BPU extends Module{
             when(e.counter === 0.U){ e.counter := 0.U }
             .otherwise             { e.counter := e.counter - 1.U }
         }
+        when(!thit_any){ e.counter := 1.U }
     }
 
     when(wr_en && !thit_any){ rr := !rr }
