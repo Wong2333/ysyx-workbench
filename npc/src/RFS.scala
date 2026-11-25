@@ -61,8 +61,6 @@ class ysyx_26030092_RFS extends Module {
     val mtime_out = IO(Output(UInt(64.W)))
 
     val timer_intr = IO(Output(Bool()))
-    val intr_taken = IO(Input(Bool()))
-    val intr_pc    = IO(Input(UInt(32.W)))
 
     val trap = ExceptionPort.isTrap
 
@@ -92,7 +90,9 @@ class ysyx_26030092_RFS extends Module {
         mtimer_ticks := mtimer_ticks - 1.U
         when(mtimer_ticks === 1.U){ mtip := true.B }
     }
-    when(intr_taken){ mtip := false.B }
+    when(ExceptionPort.isTrap && ExceptionPort.Exception_Code === "h80000007".U){
+        mtip := false.B
+    }
 
     timer_intr := mtip
 
@@ -152,11 +152,6 @@ class ysyx_26030092_RFS extends Module {
           mcause := CSRWritePort.CSRWData
         }
       }
-    }
-
-    when(intr_taken){
-      mepc   := intr_pc
-      mcause := "h80000007".U
     }
 
     when(ExceptionPort.isTrap){
