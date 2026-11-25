@@ -8,7 +8,6 @@ class BPUTrainBundle extends Bundle{
     val taken  = Bool()
     val pc     = UInt(32.W)
     val target = UInt(32.W)
-    val jal    = Bool()
 }
 
 class BPUPredictBundle extends Bundle{
