@@ -60,6 +60,8 @@ class ysyx_26030092_RFS extends Module {
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
 
+    val trap = ExceptionPort.isTrap
+
     val Reg_u = Module(new ysyx_26030092_RegBlackBox())
     Reg_u.io.raddr1 := RFS_ReadPort.RegReadPort.raddr1
     Reg_u.io.raddr2 := RFS_ReadPort.RegReadPort.raddr2
@@ -67,7 +69,7 @@ class ysyx_26030092_RFS extends Module {
     RFS_ReadPort.RegReadPort.rdata2 := Reg_u.io.rdata2
     Reg_u.io.wdata := WriteRegPort.wdata
     Reg_u.io.waddr := WriteRegPort.waddr
-    Reg_u.io.wen := WriteRegPort.wen
+    Reg_u.io.wen := WriteRegPort.wen && !trap
     Reg_u.io.clock := clock
 
     val mcycle = RegInit(0.U(64.W))
@@ -108,7 +110,7 @@ class ysyx_26030092_RFS extends Module {
       }
     }
 
-    when(CSRWritePort.CSRWrite){
+    when(CSRWritePort.CSRWrite && !trap){
       switch(CSRWritePort.CSRWAddr){//mcycle
         is("hB00".U){
           mcycle := Cat(mcycle(63,32),CSRWritePort.CSRWData)
