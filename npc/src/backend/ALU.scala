@@ -49,7 +49,7 @@ class ysyx_26030092_ALU extends Module{
         is(ALUOp.sub) { out := diff(31,0) }
         is(ALUOp.sltu){ out := (!diff(32)).asUInt }   // 借位=1 表示 src1 < src2
         is(ALUOp.slt) { out := Mux(in.src1(31) =/= in.src2(31), in.src1(31), diff(31)).asUInt }
-        is(ALUOp.and){ out := in.src1 | in.src2 }
+        is(ALUOp.and){ out := in.src1 & in.src2 }
         is(ALUOp.xor){ out := in.src1 ^ in.src2 }
         is(ALUOp.or) { out := in.src1 | in.src2 }
         is(ALUOp.lui){ out := in.src2 }
