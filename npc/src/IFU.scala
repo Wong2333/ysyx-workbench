@@ -46,7 +46,7 @@ class ysyx_26030092_IFU extends Module{
 
     val predict_take = bpu.out.valid && bpu.out.take
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
-    PC_reg.adv := icahce_main_pipe_fire && !predict_take
+    PC_reg.adv := icahce_main_pipe_fire
     PC_reg.jump := icahce_main_pipe_fire && predict_take
     PC_reg.next_pc := bpu.out.next_pc
 
