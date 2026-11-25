@@ -1,9 +1,4 @@
-// 严格 AXI4 从设备模型：在标准行为之外故意制造"合法但苛刻"的握手时序
-//   - AW / W / B / AR / R 五个通道的 ready/valid 都带独立的伪随机延迟，
-//     因此 W 有可能先于 AW 被接受，R 有可能在 RREADY 之前或之后出现；
-//   - 支持突发读（arlen），RLAST 只在最后一拍拉高；
-//   - 内部带一个 AXI4 协议检查器，发现违规立刻报错并结束仿真。
-// 用固定种子的 LFSR 产生延迟，保证同一镜像每次运行结果一致、可复现。
+
 module axi_strict #(
   parameter [31:0] BASE  = 32'h8000_0000,
   parameter        WORDS = 4*1024*1024
@@ -30,7 +25,6 @@ module axi_strict #(
     for (zi = 0; zi < WORDS; zi = zi + 1) mem[zi] = 32'h0;
   end
 
-  // ---------------- 伪随机延迟源 ----------------
   reg [31:0] lfsr;
   always @(posedge clock) begin
     if (reset) lfsr <= 32'h1;
@@ -40,7 +34,6 @@ module axi_strict #(
     rnd4 = {1'b0, v[3:0]} & 4'h7;
   endfunction
 
-  // ---------------- 写通道 ----------------
   reg        aw_got = 1'b0, w_got = 1'b0, b_valid = 1'b0;
   reg [31:0] aw_addr; reg [3:0] aw_id; reg [7:0] aw_len;
   reg [31:0] w_data;  reg [3:0] w_strb;
@@ -81,7 +74,7 @@ module axi_strict #(
         w_data <= wdata;
         w_strb <= wstrb;
         w_beat <= w_beat + 8'd1;
-        w_dly  <= rnd4(lfsr) + 4'd2;   // 让 AW / W 的相对顺序经常变化
+        w_dly  <= rnd4(lfsr) + 4'd2;
       end
       if (aw_got && w_got && !b_valid && (b_dly == 4'd0)) begin
         if (aw_is_uart) begin
@@ -107,7 +100,6 @@ module axi_strict #(
     end
   end
 
-  // ---------------- 读通道 ----------------
   reg        r_busy = 1'b0, r_valid = 1'b0;
   reg [31:0] r_addr; reg [7:0] r_len; reg [7:0] r_beat; reg [3:0] r_id;
   reg [3:0]  ar_dly = 4'd2, r_dly = 4'd1;
@@ -167,7 +159,6 @@ module axi_strict #(
 endmodule
 
 
-// ---------------- AXI4 协议检查器 ----------------
 module axi_protocol_check(
   input clock,
   input reset,

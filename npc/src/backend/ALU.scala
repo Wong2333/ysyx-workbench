@@ -35,10 +35,13 @@ class ysyx_26030092_ALU extends Module{
         val src2 = UInt(32.W)
     }))
     val out = IO(Output(UInt(32.W)))
-    // 面积优化：add/sub/slt/sltu 共用一个 32 位加法器（多一拍 mux，换一套加法器）
+
     val is_sub = (in.ctl === ALUOp.sub) || (in.ctl === ALUOp.slt) || (in.ctl === ALUOp.sltu)
     val op2    = Mux(is_sub, ~in.src2, in.src2)
     val diff   = in.src1 +& op2 + is_sub.asUInt   // 33 位，bit32 是进位/借位
+    dontTouch(is_sub)
+    dontTouch(op2)
+    dontTouch(diff)
 
     out := DontCare
     switch(in.ctl){
