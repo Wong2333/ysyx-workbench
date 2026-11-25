@@ -56,6 +56,8 @@ class ysyx_26030092_EXU extends Module{
     val mtvec = IO(Input(UInt(32.W)))
     val bpu_train = IO(Output(new BPUTrainBundle))
 
+    val timer_intr = IO(Input(Bool()))
+
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
@@ -108,8 +110,6 @@ class ysyx_26030092_EXU extends Module{
 
     val branch_u = Module(new ysyx_26030092_BranchUnit)
     val pc_u = Module(new ysyx_26030092_PCReg)
-    pc_u.next_pc := branch_u.next_pc
-    pc_u.jump    := branch_u.jump
     pc_u.adv     := branch_u.adv
     val pc = pc_u.pc
 
@@ -123,9 +123,15 @@ class ysyx_26030092_EXU extends Module{
 
     val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
 
-    fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
-    fencei     := fencei_reg
-    flush      := !pc_hit | fencei
+    fencei := fencei_reg
+    flush  := !pc_hit | fencei
+
+    val take_intr = timer_intr && idu_out.fire && !is_mem
+    val eff_excp  = idu_out.bits.is_excp || take_intr
+    branch_u.idu_in.is_excp := eff_excp
+    fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i && !take_intr
+    pc_u.jump     := branch_u.jump
+    pc_u.next_pc  := branch_u.next_pc
     redirectPC := pc
 
     // 构建wb wire
@@ -145,8 +151,8 @@ class ysyx_26030092_EXU extends Module{
         wb_data.CSRData := Mux(idu_out.bits.exu_ctl.csr_op === CSROp.csrrw,
                                idu_out.bits.rs1_data, AluResult)
     }
-    wb_data.Exception_Code := idu_out.bits.excp_code
-    wb_data.isTrap := idu_out.bits.is_excp
+    wb_data.Exception_Code := Mux(take_intr, "h80000007".U, idu_out.bits.excp_code)
+    wb_data.isTrap := eff_excp
 
     // lsu接线
     lsu_in.bits := 0.U.asTypeOf(new LSUBundle)

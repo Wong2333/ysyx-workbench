@@ -47,9 +47,9 @@ class ysyx_26030092_BranchUnit extends Module{
     jump     := lsu_trap || (redirect && fire)
     adv      := fire
     next_pc  := Mux(lsu_trap, mtvec, MuxCase(0.U, Seq(
-        taken   -> alu,
-        is_mret -> idu_in.csr_rdata,
-        idu_in.is_excp -> mtvec)))
+        idu_in.is_excp -> mtvec,
+        taken          -> alu,
+        is_mret        -> idu_in.csr_rdata)))
     dnpc     := Mux(redirect, next_pc, pc + 4.U)
 
     bpu_train.valid  := fire && (is_branch || is_jump) && !lsu_trap

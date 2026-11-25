@@ -60,6 +60,8 @@ class ysyx_26030092_RFS extends Module {
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
 
+    val timer_intr = IO(Output(Bool()))
+
     val trap = ExceptionPort.isTrap
 
     val Reg_u = Module(new ysyx_26030092_RegBlackBox())
@@ -78,6 +80,21 @@ class ysyx_26030092_RFS extends Module {
     val mcause = RegInit(0.U(32.W))
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
+
+    val mtimer_div   = RegNext(mcycle(8), false.B)
+    val mtimer_tick  = mcycle(8) && !mtimer_div
+    val mtimer_ticks = RegInit(0.U(16.W))
+    val mtip         = RegInit(false.B)
+
+    when(mtimer_tick && mtimer_ticks =/= 0.U){
+        mtimer_ticks := mtimer_ticks - 1.U
+        when(mtimer_ticks === 1.U){ mtip := true.B }
+    }
+    when(ExceptionPort.isTrap && ExceptionPort.Exception_Code === "h80000007".U){
+        mtip := false.B
+    }
+
+    timer_intr := mtip
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -126,6 +143,10 @@ class ysyx_26030092_RFS extends Module {
         }
         is("h341".U){
           mepc := CSRWritePort.CSRWData
+        }
+        is("h7C0".U){// [15:0] 倒计节拍数 ticks; 写 0 = 关闭
+          mtimer_ticks := CSRWritePort.CSRWData(15,0)
+          mtip         := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
