@@ -40,15 +40,11 @@ class ysyx_26030092_IFU extends Module{
 
     out <> icache_main_pipe.resp
 
-    val bpu = Module(new ysyx_26030092_BPU)
-    bpu.pc    := PC_reg.pc
-    bpu.train := bpu_train
-
-    val predict_take = bpu.out.valid && bpu.out.take
+    val predict_take = false.B
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
     PC_reg.adv := icahce_main_pipe_fire
     PC_reg.jump := icahce_main_pipe_fire && predict_take
-    PC_reg.next_pc := bpu.out.next_pc
+    PC_reg.next_pc := 0.U
 
     when(flush){                       // flush 优先级最高，放最后覆盖
         icache_main_pipe.req.valid := false.B
