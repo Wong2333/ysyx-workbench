@@ -64,8 +64,6 @@ class IDUBundle extends Bundle{
         b.jump_op   := exu_ctl.jump_op
         b.sys_op    := exu_ctl.sys_op
         b.is_excp   := is_excp
-        b.rd        := decode.rd
-        b.rs1_idx   := decode.inst(19,15)
         b
     }
 
@@ -252,7 +250,7 @@ class ysyx_26030092_IDU extends Module{
             out_comb.exu_ctl.ALU_Src1 := ALUSrc1.rs1
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             when(inst.funct3 === "b000".U){//jalr
-                out_comb.exu_ctl.jump_op := JumpOp.jalr
+                out_comb.exu_ctl.jump_op := JumpOp.jump
                 out_comb.exu_ctl.ALU_Control := ALUOp.add
                 out_comb.exu_ctl.reg_write := true.B
                 out_comb.exu_ctl.wb_src := WBSrc.pc_plus4
@@ -423,7 +421,7 @@ class ysyx_26030092_IDU extends Module{
             out_comb.exu_ctl.ALU_Src2 := ALUSrc2.imm
             out_comb.decode.imm := inst.immJ
             out_comb.exu_ctl.ALU_Control := ALUOp.add
-            out_comb.exu_ctl.jump_op := JumpOp.jal
+            out_comb.exu_ctl.jump_op := JumpOp.jump
             out_comb.exu_ctl.reg_write := true.B
             out_comb.exu_ctl.wb_src := WBSrc.pc_plus4
             invalid := false.B

@@ -11,8 +11,6 @@ class branchBundle extends Bundle{
     val jump_op   = JumpOp()
     val sys_op    = SysOp()
     val is_excp   = Bool()
-    val rd        = UInt(5.W)
-    val rs1_idx   = UInt(5.W)
 }
 
 class ysyx_26030092_BranchUnit extends Module{
@@ -41,9 +39,7 @@ class ysyx_26030092_BranchUnit extends Module{
         BranchOp.bgeu -> !bltu))
 
     val is_branch = idu_in.branch_op =/= BranchOp.none
-    val is_jal  = idu_in.jump_op === JumpOp.jal
-    val is_jalr = idu_in.jump_op === JumpOp.jalr
-    val is_jump = is_jal || is_jalr
+    val is_jump = idu_in.jump_op === JumpOp.jump
     val is_mret = idu_in.sys_op === SysOp.mret
     val taken   = branch_cond || is_jump
 
@@ -60,7 +56,4 @@ class ysyx_26030092_BranchUnit extends Module{
     bpu_train.taken  := taken
     bpu_train.pc     := pc
     bpu_train.target := next_pc
-    bpu_train.call   := is_jump && idu_in.rd =/= 0.U
-    bpu_train.jalr   := is_jalr
-    bpu_train.ret    := is_jalr && idu_in.rd === 0.U && idu_in.rs1_idx === 1.U
 }
