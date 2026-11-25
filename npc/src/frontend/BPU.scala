@@ -8,7 +8,7 @@ class BPUTrainBundle extends Bundle{
     val taken  = Bool()
     val pc     = UInt(32.W)
     val target = UInt(32.W)
-    val link   = Bool()
+    val call   = Bool()
     val jalr   = Bool()
     val ret    = Bool()
 }
@@ -81,7 +81,7 @@ class ysyx_26030092_BPU extends Module{
 
     when(wr_en && !thit_any){ rr := !rr }
 
-    val push     = train.valid && train.link && !train.ret
+    val push     = train.valid && train.call
     val pop      = train.valid && train.ret
     val ret_addr = train.pc + 4.U
     val push_idx = Mux(ras_sp === RAS_DEPTH.U, (RAS_DEPTH - 1).U, ras_sp)
