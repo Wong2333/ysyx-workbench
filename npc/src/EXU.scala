@@ -70,7 +70,6 @@ class ysyx_26030092_EXU extends Module{
 
     val wb_slot        = Reg(new WriteBackPortBundle)
     val wb_slot_valid  = RegInit(false.B)
-    val wb_hold        = RegInit(false.B)
     val wb_slot_commit = Reg(new CommitInfoBundle)
     val lsu_busy       = RegInit(false.B)
     val fencei_reg = RegInit(false.B)
@@ -171,7 +170,6 @@ class ysyx_26030092_EXU extends Module{
         when(lsu_out.fire){
             wb_slot.RegWdata := lsu_out.bits.rdata
             wb_slot_valid    := true.B
-            wb_hold          := true.B
             lsu_busy         := false.B
             when(lsu_out.bits.is_excp){
                 wb_slot.isTrap         := true.B
@@ -183,19 +181,18 @@ class ysyx_26030092_EXU extends Module{
     }.elsewhen(idu_out.fire){
         wb_slot        := wb_data
         wb_slot_commit := commit_info_comb
-        wb_hold        := !is_mem
         when(is_mem){ lsu_busy := true.B }.otherwise{ wb_slot_valid := true.B }
     }
 
-    wb_info.wen   := (wb_hold || lsu_busy) && wb_slot.RegWrite
+    wb_info.wen   := (wb_slot_valid || lsu_busy) && wb_slot.RegWrite
     wb_info.rd    := wb_slot.RegWaddr
     wb_info.value := wb_slot.RegWdata
-    wb_info.valid := wb_hold && wb_slot.RegWrite
+    wb_info.valid := wb_slot_valid && wb_slot.RegWrite
 
-    csr_info.wen   := (wb_hold || lsu_busy) && wb_slot.CSRWrite
+    csr_info.wen   := (wb_slot_valid || lsu_busy) && wb_slot.CSRWrite
     csr_info.addr  := wb_slot.CSRAddr
     csr_info.value := wb_slot.CSRData
-    csr_info.valid := wb_hold && wb_slot.CSRWrite
+    csr_info.valid := wb_slot_valid && wb_slot.CSRWrite
 
 
     // DEBUG
