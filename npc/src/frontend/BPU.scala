@@ -29,7 +29,7 @@ class ysyx_26030092_BPU extends Module{
     val out   = IO(Output(new BPUPredictBundle))
 
     val btb = Reg(Vec(2, new BTBEntry))
-    val rr  = RegInit(false.B)
+    val rr  = RegInit(0.U(log2Ceil(NWAYS).W))
 
     val tag = pc(9,2)
     val hit = (0 until 2).map(i => btb(i).valid && btb(i).tag === tag)
@@ -42,7 +42,7 @@ class ysyx_26030092_BPU extends Module{
     val thit = (0 until 2).map(i => btb(i).valid && btb(i).tag === ttag)
     val thit_any = thit.reduce(_ || _) && train.valid
 
-    val victim  = Mux(!btb(0).valid, 0.U, Mux(!btb(1).valid, 1.U, rr))
+    val victim  = MuxCase(rr, (0 until NWAYS).map(i => (!btb(i).valid) -> i.U))
 
     val wr_en  = train.valid && (train.taken || thit_any)
     val wr_way = Mux(thit_any, PriorityEncoder(thit), victim)
@@ -62,7 +62,7 @@ class ysyx_26030092_BPU extends Module{
         when(!thit_any){ e.counter := 2.U }
     }
 
-    when(wr_en && !thit_any){ rr := !rr }
+    when(wr_en && !thit_any){ rr := Mux(rr === (NWAYS - 1).U, 0.U, rr + 1.U) }
 
     when(reset.asBool){
         btb.foreach(_.valid := false.B)
