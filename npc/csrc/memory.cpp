@@ -73,8 +73,6 @@ extern "C" void psram_write(int32_t addr,char data){
     psram_8bits[uaddr] = data;
 }
 
-// SDRAM 颗粒模型：64MB 扁平数组，16 位地址就是字地址
-// mask 是 DQM（低有效）：bit=1 表示该字节不写
 #define SDRAM_WORDS (16u * 1024u * 1024u)   // 16M words = 64MB
 static uint32_t sdram_mem[SDRAM_WORDS];
 
@@ -87,15 +85,9 @@ extern "C" void sdram_read(int32_t addr, int32_t *data) {
 }
 
 extern "C" void sdram_write(int32_t addr, int32_t wdata, char mask) {
-    uint32_t *word = &sdram_mem[sdram_index(addr)];
-    uint32_t cur = *word;
-    for (int i = 0; i < 4; i++) {
-        if (!(mask & (1 << i))) {                 // DQM 低有效：0 才写
-            uint32_t m = 0xFFu << (8 * i);
-            cur = (cur & ~m) | ((((uint32_t)wdata >> (8 * i)) & 0xFFu) << (8 * i));
-        }
-    }
-    *word = cur;
+    uint8_t *byte = (uint8_t *)&sdram_mem[sdram_index(addr)];
+    for (int i = 0; i < 4; i++)                   // mask 是 DQM，低有效：0 才写
+        if (!(mask & (1 << i))) byte[i] = wdata >> (8 * i);
 }
 
 
