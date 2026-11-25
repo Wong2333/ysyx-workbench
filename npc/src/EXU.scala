@@ -128,8 +128,7 @@ class ysyx_26030092_EXU extends Module{
     fencei     := fencei_reg
     flush      := !pc_hit | fencei
 
-    val take_intr = timer_intr && idu_out.valid && !lsu_busy && !flush &&
-                    !lsu_trap && !idu_out.bits.is_excp
+    val take_intr = timer_intr && !lsu_busy
     intr_taken    := take_intr
     branch_u.intr := take_intr
     pc_u.jump     := branch_u.jump
