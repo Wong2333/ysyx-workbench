@@ -32,14 +32,14 @@ class ysyx_26030092_BPU extends Module{
     val btb = Reg(Vec(2, new BTBEntry))
     val rr  = RegInit(false.B)
 
-    val tag = pc(7,0)
+    val tag = pc(9,2)
     val hit = (0 until 2).map(i => btb(i).valid && btb(i).tag === tag)
 
     out.valid   := hit.reduce(_ || _)
     out.take    := Mux1H(hit, (0 until 2).map(i => btb(i).counter(1)))
     out.next_pc := Cat(pc(31,12), Mux1H(hit, (0 until 2).map(i => btb(i).target)), 0.U(2.W))
 
-    val ttag = train.pc(7,0)
+    val ttag = train.pc(9,2)
     val thit = (0 until 2).map(i => btb(i).valid && btb(i).tag === ttag)
     val thit_any = thit.reduce(_ || _) && train.valid
 
