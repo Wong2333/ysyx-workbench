@@ -26,9 +26,6 @@ $(SIM_DIR)/tb.vvp: $(CORE) sim/tb_npc.v sim/axi_mem.v
 sim-iverilog: $(SIM_HEX) $(SIM_DIR)/tb.vvp
 	$(VVP) $(SIM_DIR)/tb.vvp +HEX=$(CURDIR)/$(SIM_HEX) +CYCLES=$(SIM_CYCLES)
 
-# 严格 AXI 从设备仿真：随机化握手时序 + 协议检查（用来在本地逼出 AXI 违规）
-# 注意：这里不定义 NPC/NETLIST_SIM，让 CPU 从 0x3000_0000 启动，
-# 由 axi_strict 的 boot 别名跳到 0x8000_0000，和真实 SoC 的启动方式一致
 $(SIM_DIR)/tb_strict.vvp: $(CORE) sim/tb_strict.v sim/axi_strict.v
 	@mkdir -p $(SIM_DIR)
 	$(IVERILOG) $(IVERILOG_FLAGS) -s tb_strict -o $@ $(CORE) sim/axi_strict.v sim/tb_strict.v
