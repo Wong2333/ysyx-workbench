@@ -124,15 +124,16 @@ class ysyx_26030092_EXU extends Module{
 
     val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
 
-    val take_intr = timer_intr && idu_out.valid && !lsu_busy && !flush &&
-                    !lsu_trap && !idu_out.bits.is_excp
-    intr_taken := take_intr
-    pc_u.jump    := take_intr || branch_u.jump
-    pc_u.next_pc := Mux(take_intr, mtvec, branch_u.next_pc)
-
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
     flush      := !pc_hit | fencei
+
+    val take_intr = timer_intr && idu_out.valid && !lsu_busy && !flush &&
+                    !lsu_trap && !idu_out.bits.is_excp
+    intr_taken    := take_intr
+    branch_u.intr := take_intr
+    pc_u.jump     := branch_u.jump
+    pc_u.next_pc  := branch_u.next_pc
     redirectPC := pc
 
     // 构建wb wire
