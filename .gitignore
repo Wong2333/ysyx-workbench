@@ -11,6 +11,7 @@
 !.gitignore
 !init.sh
 /fceux-am
+/fceux-am.bak
 /nvboard
 /am-kernels
 
