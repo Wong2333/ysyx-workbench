@@ -50,7 +50,7 @@ class ysyx_26030092_ALU extends Module{
         is(ALUOp.xor){ out := in.src1 ^ in.src2 }
         is(ALUOp.or) { out := in.src1 | in.src2 }
         is(ALUOp.lui){ out := in.src2 }
-        is(ALUOp.sll){ out := in.src1 << in.src2(4,0) }
+        is(ALUOp.sll){ out := in.src1 << in.src2(3,0) }
         is(ALUOp.srl){ out := in.src1 >> in.src2(4,0) }
         is(ALUOp.sra){ out := (in.src1.asSInt >> in.src2(4,0)).asUInt }
     }
