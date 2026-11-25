@@ -36,6 +36,7 @@ class ysyx_26030092 extends Module{
     IFU_u.flush_icache := EXU_u.fencei
     IFU_u.flush := EXU_u.flush
     IFU_u.RedirectPC :=EXU_u.redirectPC
+    IFU_u.bpu_train := EXU_u.bpu_train
 
     IDU_u.in <> IFU_u.out
     IDU_u.RFS_ReadPort <> RFS_u.RFS_ReadPort

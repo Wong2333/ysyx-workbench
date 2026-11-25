@@ -20,13 +20,14 @@ class ysyx_26030092_IFU extends Module{
     val RedirectPC = IO(Input(UInt(32.W)))
     val flush_icache = IO(Input(Bool()))
     val flush = IO(Input(Bool()))
+    val bpu_train = IO(Input(new BPUTrainBundle))
 
     val AXI4_port = IO(new AXI4Bundle)
 
     val PC_reg = Module(new ysyx_26030092_PCReg)
 
-    val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 1, hasFlush = true)) }
-    inst_queue.io.flush.get := flush
+    // val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 1, hasFlush = true)) }
+    // inst_queue.io.flush.get := flush
     
     val icache_main_pipe = Module(new ysyx_26030092_icacheMainPipe_reg)
     icache_main_pipe.AXI4_port <> AXI4_port
@@ -35,14 +36,19 @@ class ysyx_26030092_IFU extends Module{
     icache_main_pipe.req.addr := PC_reg.pc
     icache_main_pipe.flush := flush
 
-    inst_queue.io.enq <> icache_main_pipe.resp
+    // inst_queue.io.enq <> icache_main_pipe.resp
 
-    out <> inst_queue.io.deq
+    out <> icache_main_pipe.resp
 
+    val bpu = Module(new ysyx_26030092_BPU)
+    bpu.pc    := PC_reg.pc
+    bpu.train := bpu_train
+
+    val predict_take = bpu.out.valid && bpu.out.take
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
-    PC_reg.adv := icahce_main_pipe_fire
-    PC_reg.jump := false.B
-    PC_reg.next_pc := 0.U
+    PC_reg.adv := icahce_main_pipe_fire && !predict_take
+    PC_reg.jump := icahce_main_pipe_fire && predict_take
+    PC_reg.next_pc := bpu.out.next_pc
 
     when(flush){                       // flush 优先级最高，放最后覆盖
         icache_main_pipe.req.valid := false.B

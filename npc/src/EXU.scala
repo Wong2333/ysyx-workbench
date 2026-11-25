@@ -54,6 +54,7 @@ class ysyx_26030092_EXU extends Module{
     val fencei = IO(Output(Bool()))
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
+    val bpu_train = IO(Output(new BPUTrainBundle))
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
@@ -119,6 +120,7 @@ class ysyx_26030092_EXU extends Module{
     branch_u.lsu_trap  := lsu_trap
     branch_u.idu_in    := idu_out.bits.to_branch
     branch_u.fire      := idu_out.fire
+    bpu_train          := branch_u.bpu_train
 
     val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
 
