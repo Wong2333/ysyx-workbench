@@ -73,29 +73,23 @@ extern "C" void psram_write(int32_t addr,char data){
     psram_8bits[uaddr] = data;
 }
 
-// 位扩展后的 SDRAM 颗粒模型：总共 128MB（两片 × 64MB），用一块扁平数组表示
-// 下标 = (片选 << 24) | 24 位字地址；mask 是 DQM（低有效）：bit=1 表示该字节不写
-#define SDRAM_WORDS (32u * 1024u * 1024u)   // 32M words = 128MB
+#define SDRAM_WORDS (16u * 1024u * 1024u)   // 16M words = 64MB
 static uint32_t sdram_mem[SDRAM_WORDS];
 
-static inline uint32_t sdram_index(char high_sdram, int32_t addr) {
-    return (((uint32_t)high_sdram & 1u) << 24) | ((uint32_t)addr & 0xFFFFFFu);
+static inline uint32_t sdram_index(int32_t addr) {
+    return (uint32_t)addr & 0xFFFFFFu;
 }
 
-extern "C" void sdram_read(char high_sdram, int32_t addr, int32_t *data) {
-    *data = (int32_t)sdram_mem[sdram_index(high_sdram, addr)];
+extern "C" void sdram_read(int32_t addr, int32_t *data) {
+    *data = (int32_t)sdram_mem[sdram_index(addr)];
 }
 
-extern "C" void sdram_write(char high_sdram, int32_t addr, int32_t wdata, char mask) {
-    uint32_t *word = &sdram_mem[sdram_index(high_sdram, addr)];
-    uint32_t cur = *word;
-    for (int i = 0; i < 4; i++) {
-        if (!(mask & (1 << i))) {                 // DQM 低有效：0 才写
-            uint32_t m = 0xFFu << (8 * i);
-            cur = (cur & ~m) | ((((uint32_t)wdata >> (8 * i)) & 0xFFu) << (8 * i));
-        }
-    }
-    *word = cur;
+extern "C" void sdram_write(int32_t addr, int32_t wdata, char mask) {
+    uint32_t *word = &sdram_mem[sdram_index(addr)];
+    uint32_t m = 0;
+    for (int i = 0; i < 4; i++)                   // mask 是 DQM，低有效：0 才写
+        if (!(mask & (1 << i))) m |= 0xFFu << (8 * i);
+    *word = (*word & ~m) | (wdata & m);
 }
 
 
@@ -113,10 +107,8 @@ uint32_t mem_read(uint32_t addr) {
     }
     else if (addr >= 0x80000000 && addr < 0x80400000)    // PSRAM
         return psram[(addr - 0x80000000) >> 2];
-    else if(addr >= 0xa0000000 && addr < 0xa4000000) {  // SDRAM：bit25 选片，低 24 位是字地址
-        uint32_t off = addr - 0xa0000000;
-        return sdram_mem[(((off >> 25) & 1u) << 24) | ((off >> 2) & 0xFFFFFFu)];
-    }
+    else if(addr >= 0xa0000000 && addr < 0xa4000000)    // SDRAM
+        return sdram_mem[((addr - 0xa0000000) >> 2) & 0xFFFFFFu];
     return 0;
 }
 

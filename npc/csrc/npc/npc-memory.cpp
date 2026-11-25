@@ -45,7 +45,6 @@ static bool npc_pmem_hit(uint32_t addr) {
     return addr >= NPC_PMEM_BASE && addr < NPC_PMEM_BASE + NPC_PMEM_SIZE;
 }
 
-// 读 4 字节；返回 false 表示地址未映射（由 AXI 从设备转成 DECERR）
 static bool npc_bus_read(uint32_t addr, uint32_t *data) {
     uint32_t a = addr & ~3u;
     if (npc_pmem_hit(a)) {
@@ -60,7 +59,7 @@ static bool npc_bus_read(uint32_t addr, uint32_t *data) {
         return true;
     }
     if (a >= NPC_UART_BASE && a < NPC_UART_BASE + 8) {
-        *data = 0;                                      // npc 平台 AM 只写不读
+        *data = 0;                              
         return true;
     }
     if (a >= NPC_RTC_BASE && a < NPC_RTC_BASE + 8) {
@@ -120,17 +119,15 @@ uint32_t ref_mem_base() {
     return NPC_PMEM_BASE;
 }
 
-// DPI：ok 返回 1 表示访问成功，0 表示地址未映射
-extern "C" void npc_mem_read(int addr, int *data, int *ok) {
+// DPI：地址未映射时读回 0、写丢弃
+extern "C" void npc_mem_read(int addr, int *data) {
     uint32_t v = 0;
-    bool hit = npc_bus_read((uint32_t)addr, &v);
+    npc_bus_read((uint32_t)addr, &v);
     *data = (int)v;
-    *ok = hit ? 1 : 0;
 }
 
-extern "C" void npc_mem_write(int addr, int data, char strb, int *ok) {
-    bool hit = npc_bus_write((uint32_t)addr, (uint32_t)data, (uint8_t)strb);
-    *ok = hit ? 1 : 0;
+extern "C" void npc_mem_write(int addr, int data, char strb) {
+    npc_bus_write((uint32_t)addr, (uint32_t)data, (uint8_t)strb);
 }
 
 #endif
