@@ -85,9 +85,11 @@ extern "C" void sdram_read(int32_t addr, int32_t *data) {
 }
 
 extern "C" void sdram_write(int32_t addr, int32_t wdata, char mask) {
-    uint8_t *byte = (uint8_t *)&sdram_mem[sdram_index(addr)];
+    uint32_t *word = &sdram_mem[sdram_index(addr)];
+    uint32_t m = 0;
     for (int i = 0; i < 4; i++)                   // mask 是 DQM，低有效：0 才写
-        if (!(mask & (1 << i))) byte[i] = wdata >> (8 * i);
+        if (!(mask & (1 << i))) m |= 0xFFu << (8 * i);
+    *word = (*word & ~m) | (wdata & m);
 }
 
 
