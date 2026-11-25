@@ -66,6 +66,7 @@ class IDUBundle extends Bundle{
         b.is_excp   := is_excp
         b
     }
+
 }
 
 class StageWriteInfoBundle extends Bundle{
