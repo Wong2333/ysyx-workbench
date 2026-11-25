@@ -29,21 +29,22 @@ class ysyx_26030092_BPU extends Module{
     val pc    = IO(Input(UInt(32.W)))
     val out   = IO(Output(new BPUPredictBundle))
 
-    val btb = Reg(Vec(2, new BTBEntry))
-    val rr  = RegInit(false.B)
+    val NWAYS = 4
+    val btb = Reg(Vec(NWAYS, new BTBEntry))
+    val rr  = RegInit(0.U(log2Ceil(NWAYS).W))
 
     val tag = pc(9,2)
-    val hit = (0 until 2).map(i => btb(i).valid && btb(i).tag === tag)
+    val hit = (0 until NWAYS).map(i => btb(i).valid && btb(i).tag === tag)
 
     out.valid   := hit.reduce(_ || _)
-    out.take    := Mux1H(hit, (0 until 2).map(i => btb(i).counter(1)))
-    out.next_pc := Cat(pc(31,12), Mux1H(hit, (0 until 2).map(i => btb(i).target)), 0.U(2.W))
+    out.take    := Mux1H(hit, (0 until NWAYS).map(i => btb(i).counter(1)))
+    out.next_pc := Cat(pc(31,12), Mux1H(hit, (0 until NWAYS).map(i => btb(i).target)), 0.U(2.W))
 
     val ttag = train.pc(9,2)
-    val thit = (0 until 2).map(i => btb(i).valid && btb(i).tag === ttag)
+    val thit = (0 until NWAYS).map(i => btb(i).valid && btb(i).tag === ttag)
     val thit_any = thit.reduce(_ || _) && train.valid
 
-    val victim  = Mux(!btb(0).valid, 0.U, Mux(!btb(1).valid, 1.U, rr))
+    val victim = MuxCase(rr, (0 until NWAYS).map(i => (!btb(i).valid) -> i.U))
 
     val wr_en  = train.valid && (train.taken || thit_any)
     val wr_way = Mux(thit_any, PriorityEncoder(thit), victim)
@@ -62,7 +63,9 @@ class ysyx_26030092_BPU extends Module{
         }
     }
 
-    when(wr_en && !thit_any){ rr := !rr }
+    when(wr_en && !thit_any){
+        rr := Mux(rr === (NWAYS - 1).U, 0.U, rr + 1.U)
+    }
 
     when(reset.asBool){
         btb.foreach(_.valid := false.B)
