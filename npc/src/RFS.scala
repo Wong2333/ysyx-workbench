@@ -83,12 +83,12 @@ class ysyx_26030092_RFS extends Module {
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
 
-    val timer_dl      = RegInit(0.U(24.W))
-    val timer_armed   = RegInit(false.B)
-    val timer_pending = RegInit(false.B)
+    val mtimecmp   = RegInit(0.U(24.W))
+    val mtip_en    = RegInit(false.B)
+    val mtip       = RegInit(false.B)
 
-    timer_intr := timer_pending
-    timer_pending := (timer_pending || (timer_armed && mcycle(23,0) === timer_dl)) && !intr_taken
+    timer_intr := mtip
+    mtip := (mtip || (mtip_en && mcycle(23,0) === mtimecmp)) && !intr_taken
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -139,9 +139,9 @@ class ysyx_26030092_RFS extends Module {
           mepc := CSRWritePort.CSRWData
         }
         is("h7C0".U){// 写截止时刻，写 0 = 关闭
-          timer_dl      := CSRWritePort.CSRWData(23,0)
-          timer_armed   := CSRWritePort.CSRWData(23,0) =/= 0.U
-          timer_pending := false.B
+          mtimecmp := CSRWritePort.CSRWData(23,0)
+          mtip_en  := CSRWritePort.CSRWData(23,0) =/= 0.U
+          mtip     := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
