@@ -94,8 +94,6 @@ class ysyx_26030092_IDU extends Module{
     val flush = IO(Input(Bool()))
     val out = IO(Decoupled(new IDUBundle))
 
-    val out_comb = Wire(new IDUBundle)
-
     val wb_info  = IO(Flipped(new StageWriteInfoBundle))
     val csr_info = IO(Flipped(new CSRWriteInfoBundle))
 
@@ -103,6 +101,10 @@ class ysyx_26030092_IDU extends Module{
         val RegReadPort = new ReadRegPortBundle
         val CSRReadPort = new CSRReadPortBundle
     })
+
+    val out_comb = Wire(new IDUBundle)
+
+
 
     val inst = in.bits.inst.asTypeOf(new InstDecode)
     dontTouch(inst)

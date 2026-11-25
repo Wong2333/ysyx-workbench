@@ -25,8 +25,8 @@ class ysyx_26030092_IFU extends Module{
 
     val PC_reg = Module(new ysyx_26030092_PCReg)
 
-    val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 1, hasFlush = true)) }
-    inst_queue.io.flush.get := flush
+    // val inst_queue = ysyxPrefix { Module(new Queue(new instEntry, 1, hasFlush = true)) }
+    // inst_queue.io.flush.get := flush
     
     val icache_main_pipe = Module(new ysyx_26030092_icacheMainPipe_reg)
     icache_main_pipe.AXI4_port <> AXI4_port
@@ -35,9 +35,9 @@ class ysyx_26030092_IFU extends Module{
     icache_main_pipe.req.addr := PC_reg.pc
     icache_main_pipe.flush := flush
 
-    inst_queue.io.enq <> icache_main_pipe.resp
+    // inst_queue.io.enq <> icache_main_pipe.resp
 
-    out <> inst_queue.io.deq
+    out <> icache_main_pipe.resp
 
     val icahce_main_pipe_fire = icache_main_pipe.req.ready & icache_main_pipe.req.valid
     PC_reg.adv := icahce_main_pipe_fire
