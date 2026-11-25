@@ -6,7 +6,7 @@ import npc.EXUs._
 import npc.PMU._
 
 object JumpOp extends ChiselEnum{
-    val none, jal, jalr = Value
+    val none, jump = Value
 }
 
 object MemOp extends ChiselEnum{
