@@ -120,17 +120,15 @@ uint32_t ref_mem_base() {
     return NPC_PMEM_BASE;
 }
 
-// DPI：ok 返回 1 表示访问成功，0 表示地址未映射
-extern "C" void npc_mem_read(int addr, int *data, int *ok) {
+// DPI：地址未映射时读回 0、写丢弃
+extern "C" void npc_mem_read(int addr, int *data) {
     uint32_t v = 0;
-    bool hit = npc_bus_read((uint32_t)addr, &v);
+    npc_bus_read((uint32_t)addr, &v);
     *data = (int)v;
-    *ok = hit ? 1 : 0;
 }
 
-extern "C" void npc_mem_write(int addr, int data, char strb, int *ok) {
-    bool hit = npc_bus_write((uint32_t)addr, (uint32_t)data, (uint8_t)strb);
-    *ok = hit ? 1 : 0;
+extern "C" void npc_mem_write(int addr, int data, char strb) {
+    npc_bus_write((uint32_t)addr, (uint32_t)data, (uint8_t)strb);
 }
 
 #endif
