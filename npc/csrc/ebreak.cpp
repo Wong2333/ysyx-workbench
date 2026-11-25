@@ -69,7 +69,7 @@ extern uint64_t cycle;
 extern u_int64_t inst_counter;
 void printPMU();
 void ebreak() {
-    uint32_t status = read_rf_reg(2);
+    uint32_t status = read_rf_reg(10);
     printf("cycle: %llu, InstCounter: %llu, IPC: %f\n",cycle, inst_counter , 1.0 * inst_counter / cycle);
     printPMU();
     if(status == 0){
