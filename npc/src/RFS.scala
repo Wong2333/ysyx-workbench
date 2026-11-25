@@ -83,12 +83,18 @@ class ysyx_26030092_RFS extends Module {
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
 
-    val mtimecmp   = RegInit(0.U(24.W))
-    val mtip_en    = RegInit(false.B)
-    val mtip       = RegInit(false.B)
+    // 倒计时定时器：mcycle 先 (psc+1) 分频，倒计数器每个节拍减 1，减到 0 置 mtip
+    val tmr_psc     = RegInit(0.U(8.W))
+    val tmr_psc_cnt = RegInit(0.U(8.W))
+    val tmr_cnt     = RegInit(0.U(16.W))
+    val mtip        = RegInit(false.B)
+
+    val tmr_tick = tmr_psc_cnt === tmr_psc
+    tmr_psc_cnt := Mux(tmr_tick, 0.U, tmr_psc_cnt + 1.U)
+    when(tmr_tick && tmr_cnt === 1.U){ mtip := true.B }
+    .elsewhen(intr_taken)            { mtip := false.B }
 
     timer_intr := mtip
-    mtip := (mtip || (mtip_en && mcycle(23,0) === mtimecmp)) && !intr_taken
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -138,10 +144,11 @@ class ysyx_26030092_RFS extends Module {
         is("h341".U){
           mepc := CSRWritePort.CSRWData
         }
-        is("h7C0".U){// 写截止时刻，写 0 = 关闭
-          mtimecmp := CSRWritePort.CSRWData(23,0)
-          mtip_en  := CSRWritePort.CSRWData(23,0) =/= 0.U
-          mtip     := false.B
+        is("h7C0".U){// [23:16] 分频系数, [15:0] 倒计拍数; 写 0 = 关闭
+          tmr_psc     := CSRWritePort.CSRWData(23,16)
+          tmr_cnt     := CSRWritePort.CSRWData(15,0)
+          tmr_psc_cnt := 0.U
+          mtip        := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
