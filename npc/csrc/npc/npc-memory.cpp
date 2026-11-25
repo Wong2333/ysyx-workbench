@@ -45,7 +45,6 @@ static bool npc_pmem_hit(uint32_t addr) {
     return addr >= NPC_PMEM_BASE && addr < NPC_PMEM_BASE + NPC_PMEM_SIZE;
 }
 
-// 读 4 字节；返回 false 表示地址未映射（由 AXI 从设备转成 DECERR）
 static bool npc_bus_read(uint32_t addr, uint32_t *data) {
     uint32_t a = addr & ~3u;
     if (npc_pmem_hit(a)) {
@@ -60,7 +59,7 @@ static bool npc_bus_read(uint32_t addr, uint32_t *data) {
         return true;
     }
     if (a >= NPC_UART_BASE && a < NPC_UART_BASE + 8) {
-        *data = 0;                                      // npc 平台 AM 只写不读
+        *data = 0;                              
         return true;
     }
     if (a >= NPC_RTC_BASE && a < NPC_RTC_BASE + 8) {
