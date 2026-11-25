@@ -56,9 +56,6 @@ class ysyx_26030092_EXU extends Module{
     val mtvec = IO(Input(UInt(32.W)))
     val bpu_train = IO(Output(new BPUTrainBundle))
 
-    val timer_intr = IO(Input(Bool()))
-    val intr_taken = IO(Output(Bool()))
-
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
@@ -111,6 +108,8 @@ class ysyx_26030092_EXU extends Module{
 
     val branch_u = Module(new ysyx_26030092_BranchUnit)
     val pc_u = Module(new ysyx_26030092_PCReg)
+    pc_u.next_pc := branch_u.next_pc
+    pc_u.jump    := branch_u.jump
     pc_u.adv     := branch_u.adv
     val pc = pc_u.pc
 
@@ -123,12 +122,6 @@ class ysyx_26030092_EXU extends Module{
     bpu_train          := branch_u.bpu_train
 
     val pc_hit = !idu_out.bits.pc_valid || idu_out.bits.decode.pc === pc
-
-    val take_intr = timer_intr && idu_out.valid && !lsu_busy && !flush &&
-                    !lsu_trap && !idu_out.bits.is_excp
-    intr_taken := take_intr
-    pc_u.jump    := take_intr || branch_u.jump
-    pc_u.next_pc := Mux(take_intr, mtvec, branch_u.next_pc)
 
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i
     fencei     := fencei_reg
@@ -166,7 +159,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && !flush && !take_intr // can accept
+    idu_out.ready := !lsu_busy && !flush // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit

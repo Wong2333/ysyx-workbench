@@ -60,10 +60,6 @@ class ysyx_26030092_RFS extends Module {
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
 
-    val timer_intr = IO(Output(Bool()))
-    val intr_taken = IO(Input(Bool()))
-    val intr_pc    = IO(Input(UInt(32.W)))
-
     val trap = ExceptionPort.isTrap
 
     val Reg_u = Module(new ysyx_26030092_RegBlackBox())
@@ -82,13 +78,6 @@ class ysyx_26030092_RFS extends Module {
     val mcause = RegInit(0.U(32.W))
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
-
-    val timer_dl      = RegInit(0.U(32.W))
-    val timer_armed   = RegInit(false.B)
-    val timer_pending = RegInit(false.B)
-
-    timer_intr := timer_pending
-    timer_pending := (timer_pending || (timer_armed && mcycle(31,0) === timer_dl)) && !intr_taken
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -119,9 +108,6 @@ class ysyx_26030092_RFS extends Module {
       is("h342".U){
         RFS_ReadPort.CSRReadPort.CSRRData := mcause
       }
-      is("h7C0".U){// 计时器：{armed, pending}
-        RFS_ReadPort.CSRReadPort.CSRRData := Cat(0.U(30.W), timer_armed, timer_pending)
-      }
     }
 
     when(CSRWritePort.CSRWrite && !trap){
@@ -141,20 +127,10 @@ class ysyx_26030092_RFS extends Module {
         is("h341".U){
           mepc := CSRWritePort.CSRWData
         }
-        is("h7C0".U){// 写截止时刻，写 0 = 关闭
-          timer_dl      := CSRWritePort.CSRWData
-          timer_armed   := CSRWritePort.CSRWData =/= 0.U
-          timer_pending := false.B
-        }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
         }
       }
-    }
-
-    when(intr_taken){
-      mepc   := intr_pc
-      mcause := "h80000007".U
     }
 
     when(ExceptionPort.isTrap){
