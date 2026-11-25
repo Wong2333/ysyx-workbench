@@ -15,4 +15,8 @@ static inline void npc_mtimer_start(uint32_t ticks) {
 static inline void npc_mtimer_stop(void) {
   asm volatile("csrw 0x7c0, zero");
 }
+/* 剩余节拍数；0 表示已到期或未装填（此时 wfi 会当 NOP 处理） */
+static inline uint32_t npc_mtimer_left(void) {
+  uint32_t v; asm volatile("csrr %0, 0x7c0" : "=r"(v)); return v;
+}
 #endif

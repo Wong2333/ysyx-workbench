@@ -57,7 +57,8 @@ class ysyx_26030092_EXU extends Module{
     val mtvec = IO(Input(UInt(32.W)))
     val bpu_train = IO(Output(new BPUTrainBundle))
 
-    val timer_intr = IO(Input(Bool()))
+    val timer_intr  = IO(Input(Bool()))
+    val timer_armed = IO(Input(Bool()))
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
@@ -131,8 +132,9 @@ class ysyx_26030092_EXU extends Module{
     val take_intr = timer_intr && idu_out.fire && !is_mem
     val eff_excp  = idu_out.bits.is_excp || take_intr
 
-    // WFI：指令正常退休，之后停住取指，直到中断到来
-    when(idu_out.fire && idu_out.bits.exu_ctl.wfi){ wfi_flag := true.B }
+    // WFI：指令正常退休，之后停住取指直到中断到来；
+    // 只有在计时器还装着的时候才进入等待，否则当 NOP（避免永久卡死）
+    when(idu_out.fire && idu_out.bits.exu_ctl.wfi && timer_armed){ wfi_flag := true.B }
     when(take_intr)                              { wfi_flag := false.B }
     branch_u.idu_in.is_excp := eff_excp
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i && !take_intr

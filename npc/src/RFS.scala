@@ -61,6 +61,7 @@ class ysyx_26030092_RFS extends Module {
     val mtime_out = IO(Output(UInt(64.W)))
 
     val timer_intr = IO(Output(Bool()))
+    val timer_armed = IO(Output(Bool()))
 
     val trap = ExceptionPort.isTrap
 
@@ -94,7 +95,8 @@ class ysyx_26030092_RFS extends Module {
         mtip := false.B
     }
 
-    timer_intr := mtip
+    timer_intr  := mtip
+    timer_armed := mtimer_ticks =/= 0.U
 
     mtvec_out := mtvec
     mtime_out := mcycle
