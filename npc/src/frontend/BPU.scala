@@ -8,7 +8,6 @@ class BPUTrainBundle extends Bundle{
     val taken  = Bool()
     val pc     = UInt(32.W)
     val target = UInt(32.W)
-    val jal    = Bool()
 }
 
 class BPUPredictBundle extends Bundle{
@@ -60,6 +59,7 @@ class ysyx_26030092_BPU extends Module{
             when(e.counter === 0.U){ e.counter := 0.U }
             .otherwise             { e.counter := e.counter - 1.U }
         }
+        when(!thit_any){ e.counter := 2.U }
     }
 
     when(wr_en && !thit_any){ rr := !rr }
