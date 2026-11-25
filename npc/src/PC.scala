@@ -26,6 +26,6 @@ class ysyx_26030092_PCReg extends Module{
     u.io.reset   := reset
     u.io.pc_next := next_pc
     u.io.pc_we   := jump
-    u.io.pc_4    := adv
+    u.io.pc_4    := adv && !jump
     pc := u.io.pc
 }
