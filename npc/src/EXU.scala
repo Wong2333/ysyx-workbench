@@ -47,6 +47,7 @@ class EXUCTLBundle extends Bundle{
     val csr_op      = Output(CSROp())
     val sys_op      = Output(SysOp())
     val fence_i     = Output(Bool())
+    val wfi         = Output(Bool())
 }
 
 class ysyx_26030092_EXU extends Module{
@@ -56,7 +57,8 @@ class ysyx_26030092_EXU extends Module{
     val mtvec = IO(Input(UInt(32.W)))
     val bpu_train = IO(Output(new BPUTrainBundle))
 
-    val timer_intr = IO(Input(Bool()))
+    val timer_intr  = IO(Input(Bool()))
+    val timer_armed = IO(Input(Bool()))
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
@@ -75,6 +77,7 @@ class ysyx_26030092_EXU extends Module{
     val wb_slot_commit = Reg(new CommitInfoBundle)
     val lsu_busy       = RegInit(false.B)
     val fencei_reg = RegInit(false.B)
+    val wfi_flag   = RegInit(false.B)   // 核处于 WFI 等待状态
     val commit_info_comb = Wire(new CommitInfoBundle)
 
     val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
@@ -128,6 +131,11 @@ class ysyx_26030092_EXU extends Module{
 
     val take_intr = timer_intr && idu_out.fire && !is_mem
     val eff_excp  = idu_out.bits.is_excp || take_intr
+
+    // WFI：指令正常退休，之后停住取指直到中断到来；
+    // 只有在计时器还装着的时候才进入等待，否则当 NOP（避免永久卡死）
+    when(idu_out.fire && idu_out.bits.exu_ctl.wfi && timer_armed){ wfi_flag := true.B }
+    when(take_intr)                              { wfi_flag := false.B }
     branch_u.idu_in.is_excp := eff_excp
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i && !take_intr
     pc_u.jump     := branch_u.jump
@@ -165,7 +173,7 @@ class ysyx_26030092_EXU extends Module{
 
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
-    idu_out.ready := !lsu_busy && !flush // can accept
+    idu_out.ready := !lsu_busy && !flush && !wfi_flag // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
     commit_info   := wb_slot_commit

@@ -189,6 +189,7 @@ class ysyx_26030092_IDU extends Module{
     out_comb.exu_ctl.csr_op      := CSROp.none
     out_comb.exu_ctl.sys_op      := SysOp.none
     out_comb.exu_ctl.fence_i     := false.B
+    out_comb.exu_ctl.wfi         := false.B
 
     when(invalid && !in.bits.is_excp){
         out_comb.excp_code := 2.U
@@ -282,6 +283,10 @@ class ysyx_26030092_IDU extends Module{
                 out_comb.exu_ctl.reg_write := true.B
                 out_comb.exu_ctl.wb_src := WBSrc.csr
                 invalid := false.B
+            }.elsewhen(inst.funct3 === "b000".U && inst.immI === "h105".U &&
+                        inst.rs1 === 0.U && inst.rd === 0.U){// wfi
+                    out_comb.exu_ctl.wfi := true.B
+                    invalid := false.B
             }.elsewhen(inst.funct3 === 0.U && inst.rd === 0.U && 
                     inst.rs1 === 0.U && inst.immI === "b001100000010".U){// mret
                     out_comb.exu_ctl.sys_op := SysOp.mret

@@ -38,7 +38,8 @@ class ysyx_26030092 extends Module{
     IFU_u.RedirectPC :=EXU_u.redirectPC
     IFU_u.bpu_train := EXU_u.bpu_train
 
-    EXU_u.timer_intr := RFS_u.timer_intr
+    EXU_u.timer_intr  := RFS_u.timer_intr
+    EXU_u.timer_armed := RFS_u.timer_armed
 
     IDU_u.in <> IFU_u.out
     IDU_u.RFS_ReadPort <> RFS_u.RFS_ReadPort
