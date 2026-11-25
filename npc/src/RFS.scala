@@ -83,11 +83,14 @@ class ysyx_26030092_RFS extends Module {
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
 
-    // 倒计时定时器：每个时钟减 1，减到 0 置 mtip；间隔 = ticks 个时钟周期
-    val mtimer_ticks = RegInit(0.U(22.W))
+    // 倒计时定时器：取 mcycle 第 8 位的上升沿做节拍（硬分频 512 拍，400MHz 下 1.28us），
+    // 每来一个节拍倒计 1，减到 0 置 mtip；间隔 = ticks * 512 个时钟周期
+    val mtimer_div   = RegNext(mcycle(8), false.B)
+    val mtimer_tick  = mcycle(8) && !mtimer_div
+    val mtimer_ticks = RegInit(0.U(16.W))
     val mtip         = RegInit(false.B)
 
-    when(mtimer_ticks =/= 0.U){
+    when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
         when(mtimer_ticks === 1.U){ mtip := true.B }
     }
@@ -143,8 +146,8 @@ class ysyx_26030092_RFS extends Module {
         is("h341".U){
           mepc := CSRWritePort.CSRWData
         }
-        is("h7C0".U){// [21:0] 倒计时钟数; 写 0 = 关闭
-          mtimer_ticks := CSRWritePort.CSRWData(21,0)
+        is("h7C0".U){// [15:0] 倒计节拍数 ticks; 写 0 = 关闭
+          mtimer_ticks := CSRWritePort.CSRWData(15,0)
           mtip         := false.B
         }
         is("h342".U){
