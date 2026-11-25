@@ -83,11 +83,17 @@ class ysyx_26030092_RFS extends Module {
     val mtvec = RegInit(0.U(32.W))
     val mstatus = RegInit("h1800".U(32.W))
 
-    // 倒计时定时器：单个数位倒计数器，每个时钟减 1，减到 0 置 mtip
-    val mtimer_ticks = RegInit(0.U(20.W))
-    val mtip         = RegInit(false.B)
+    // 倒计时定时器：mcycle 按 (prescale+1) 分频得到节拍，节拍到来时倒计一拍，
+    // 减到 0 置 mtip；间隔 = (prescale+1) * ticks 个时钟周期
+    val mtimer_prescale = RegInit(0.U(8.W))
+    val mtimer_phase    = RegInit(0.U(8.W))
+    val mtimer_ticks    = RegInit(0.U(14.W))
+    val mtip            = RegInit(false.B)
 
-    when(mtimer_ticks =/= 0.U){
+    val mtimer_tick = mtimer_phase === mtimer_prescale
+    mtimer_phase := Mux(mtimer_tick, 0.U, mtimer_phase + 1.U)
+
+    when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
         when(mtimer_ticks === 1.U){ mtip := true.B }
     }
@@ -143,9 +149,11 @@ class ysyx_26030092_RFS extends Module {
         is("h341".U){
           mepc := CSRWritePort.CSRWData
         }
-        is("h7C0".U){// [19:0] 倒计时钟数; 写 0 = 关闭
-          mtimer_ticks := CSRWritePort.CSRWData(19,0)
-          mtip         := false.B
+        is("h7C0".U){// [21:16] 分频系数 prescale, [13:0] 倒计节拍数 ticks; 写 0 = 关闭
+          mtimer_prescale := Cat(0.U(2.W), CSRWritePort.CSRWData(21,16))
+          mtimer_ticks    := CSRWritePort.CSRWData(13,0)
+          mtimer_phase    := 0.U
+          mtip            := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
