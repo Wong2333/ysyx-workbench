@@ -54,9 +54,6 @@ class ysyx_26030092_icacheMainPipe_reg extends Module{
     val AXI4_port = IO(new AXI4Bundle)
     AXI4_port <> refill_unit.AXI4_port
 
-    // 取指收到错误响应（例如投机取指越过了存储器末尾）时，把这个字填成 nop：
-    // 既不会把垃圾当指令执行，也不会在错误地址上无限重试（重试会堵住 refill 通路）。
-    // 之后流水线执行几条 nop，紧随其后的跳转指令在 EXU 解析后会 flush 掉 IFU。
     val refill_err = AXI4_port.rvalid && (AXI4_port.rresp =/= 0.U)
     icache.refill.addr := refill_unit.resp.addr
     icache.refill.data := Mux(refill_err, "h00000013".U, refill_unit.resp.data)  // nop = addi x0, x0, 0

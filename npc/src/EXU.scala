@@ -52,7 +52,6 @@ class EXUCTLBundle extends Bundle{
 class ysyx_26030092_EXU extends Module{
     val flush = IO(Output(Bool()))
     val fencei = IO(Output(Bool()))
-    val fencei_reg = RegInit(false.B)
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
 
@@ -73,6 +72,8 @@ class ysyx_26030092_EXU extends Module{
     val wb_hold        = RegInit(false.B)
     val wb_slot_commit = Reg(new CommitInfoBundle)
     val lsu_busy       = RegInit(false.B)
+    val fencei_reg = RegInit(false.B)
+    val commit_info_comb = Wire(new CommitInfoBundle)
 
     val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
 
@@ -155,13 +156,6 @@ class ysyx_26030092_EXU extends Module{
     lsu_in.bits.mem_signed := idu_out.bits.exu_ctl.mem_signed
     lsu_in.bits.pc := idu_out.bits.decode.pc
 
-    val commit_info_comb = Wire(new CommitInfoBundle)
-    commit_info_comb.mem := is_mem
-    commit_info_comb.mem_addr := AluResult
-    commit_info_comb.pc := idu_out.bits.decode.pc
-    commit_info_comb.inst := idu_out.bits.decode.inst
-    commit_info_comb.next_pc := branch_u.dnpc
-
     // 非访存指令可以流水
     lsu_in.valid  := idu_out.fire && is_mem
     idu_out.ready := !lsu_busy && !flush // can accept
@@ -200,6 +194,14 @@ class ysyx_26030092_EXU extends Module{
     csr_info.addr  := wb_slot.CSRAddr
     csr_info.value := wb_slot.CSRData
     csr_info.valid := wb_hold && wb_slot.CSRWrite
+
+
+    // DEBUG
+    commit_info_comb.mem := is_mem
+    commit_info_comb.mem_addr := AluResult
+    commit_info_comb.pc := idu_out.bits.decode.pc
+    commit_info_comb.inst := idu_out.bits.decode.inst
+    commit_info_comb.next_pc := branch_u.dnpc
 
     PerfCounter("EXU_flush_count")         := flush
     PerfCounter("EXU_stall_cycles")        := idu_out.valid && !idu_out.ready
