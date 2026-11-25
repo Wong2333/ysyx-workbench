@@ -29,9 +29,9 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
         master(i).rdata  := slave.rdata
         master(i).rresp  := slave.rresp
         master(i).rlast  := slave.rlast
-        slave.rready := master(i).rready && (slave.rid === i.U)
         dontTouch(master(i).rready)
     }
+    slave.rready := master(slave.rid).rready
 
     slave.connectAWFrom(master(1), true.B)
     slave.connectWFrom(master(1), true.B)
