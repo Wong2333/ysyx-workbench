@@ -126,8 +126,9 @@ class ysyx_26030092_EXU extends Module{
     fencei := fencei_reg
     flush  := !pc_hit | fencei
 
-    val take_intr = timer_intr && idu_out.valid && !flush && !lsu_busy
-    branch_u.intr := take_intr
+    val take_intr = timer_intr && idu_out.fire && !is_mem
+    val eff_excp  = idu_out.bits.is_excp || take_intr
+    branch_u.idu_in.is_excp := eff_excp
     fencei_reg := idu_out.fire && idu_out.bits.exu_ctl.fence_i && !take_intr
     pc_u.jump     := branch_u.jump
     pc_u.next_pc  := branch_u.next_pc
@@ -151,7 +152,7 @@ class ysyx_26030092_EXU extends Module{
                                idu_out.bits.rs1_data, AluResult)
     }
     wb_data.Exception_Code := Mux(take_intr, "h80000007".U, idu_out.bits.excp_code)
-    wb_data.isTrap := idu_out.bits.is_excp || take_intr
+    wb_data.isTrap := eff_excp
 
     // lsu接线
     lsu_in.bits := 0.U.asTypeOf(new LSUBundle)
@@ -163,7 +164,7 @@ class ysyx_26030092_EXU extends Module{
     lsu_in.bits.pc := idu_out.bits.decode.pc
 
     // 非访存指令可以流水
-    lsu_in.valid  := idu_out.fire && is_mem && !take_intr
+    lsu_in.valid  := idu_out.fire && is_mem
     idu_out.ready := !lsu_busy && !flush // can accept
     wbu_in.valid  := wb_slot_valid
     wbu_in.bits   := wb_slot
@@ -186,7 +187,7 @@ class ysyx_26030092_EXU extends Module{
     }.elsewhen(idu_out.fire){
         wb_slot        := wb_data
         wb_slot_commit := commit_info_comb
-        when(is_mem && !take_intr){ lsu_busy := true.B }.otherwise{ wb_slot_valid := true.B }
+        when(is_mem){ lsu_busy := true.B }.otherwise{ wb_slot_valid := true.B }
     }
 
     wb_info.wen   := (wb_slot_valid || lsu_busy) && wb_slot.RegWrite
