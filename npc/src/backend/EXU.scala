@@ -110,6 +110,7 @@ class ysyx_26030092_EXU extends Module{
     pc_u.jump     := branch_u.jump
     pc_u.next_pc  := branch_u.next_pc
 
+
     // flush
     val flush = IO(Output(Bool()))
     val fencei = IO(Output(Bool()))
@@ -190,6 +191,14 @@ class ysyx_26030092_EXU extends Module{
     csr_info.addr  := wb_slot.CSRAddr
     csr_info.value := wb_slot.CSRData
     csr_info.valid := wb_slot_valid && wb_slot.CSRWrite
+
+
+    // 异常在写回级（slot valid 且 isTrap）才重定向到 mtvec
+    val wb_trap = wb_slot_valid && wb_slot.isTrap
+    when(wb_trap){
+        pc_u.jump    := true.B
+        pc_u.next_pc := mtvec
+    }
 
     // intr
     val intr = IO(Flipped(new intr2EXU))

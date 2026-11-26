@@ -43,11 +43,10 @@ class ysyx_26030092_BranchUnit extends Module{
     val is_mret = idu_in.sys_op === SysOp.mret
     val taken   = branch_cond || is_jump
 
-    redirect := taken || is_mret || idu_in.is_excp || lsu_trap
+    redirect := taken || is_mret || lsu_trap
     jump     := lsu_trap || (redirect && fire)
-    adv      := fire
+    adv      := fire && !idu_in.is_excp
     next_pc  := Mux(lsu_trap, mtvec, MuxCase(0.U, Seq(
-        idu_in.is_excp -> mtvec,
         taken          -> alu,
         is_mret        -> idu_in.csr_rdata)))
     dnpc     := Mux(redirect, next_pc, pc + 4.U)
