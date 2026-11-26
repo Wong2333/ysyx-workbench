@@ -1,6 +1,7 @@
 package npc
 import chisel3._
 import chisel3.util._
+import backend.intr2RFS
 
 class WriteRegPortBundle extends Bundle{
     val wdata  = Output(UInt(32.W))
@@ -149,20 +150,15 @@ class ysyx_26030092_RFS extends Module {
     }
 
     //timer intr
-    val timer_intr = IO(Output(Bool()))
-    val timer_armed = IO(Output(Bool()))
-    val timer_intr_taken = IO(Input(Bool()))
-    val intr_close = IO(Input(Bool()))
-    val intr_pc = IO(Input(UInt(32.W)))
-    timer_intr  := false.B
+    val intr = IO(Flipped(new intr2RFS))
+    intr.timer_intr  := false.B
     val iset = RegInit(false.B)
     when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
-        when(mtimer_ticks === 1.U){ timer_intr := true.B }
+        when(mtimer_ticks === 1.U){ intr.timer_intr := true.B }
     }
-    timer_armed := mtimer_ticks =/= 0.U
-    when(timer_intr_taken){
-      mepc := intr_pc
+    when(intr.timer_intr_taken){
+      mepc := intr.intr_pc
       mcause := "hFF".U
     }
 
@@ -172,7 +168,7 @@ class ysyx_26030092_RFS extends Module {
     when(RFS_ReadPort.CSRReadPort.CSRRAddr === "h7C1".U){
       RFS_ReadPort.CSRReadPort.CSRRData := iset
     }
-    when(intr_close){
+    when(intr.intr_close){
       iset := false.B
     }
 

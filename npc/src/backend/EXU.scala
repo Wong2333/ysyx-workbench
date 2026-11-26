@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import npc.EXUs._
 import npc.PMU._
+import backend.intr2EXU
 
 object JumpOp extends ChiselEnum{
     val none, jump = Value
@@ -191,19 +192,16 @@ class ysyx_26030092_EXU extends Module{
     csr_info.valid := wb_slot_valid && wb_slot.CSRWrite
 
     // intr
-    val intr  = IO(Input(Bool()))
-    val intr_taken = IO(Output(Bool()))
-    val excp_taken = IO(Output(Bool()))
-    val intr_pc = IO(Output(UInt(32.W)))
-    intr_taken := false.B
-    excp_taken := false.B
+    val intr = IO(Flipped(new intr2EXU))
+    intr.intr_taken := false.B
+    intr.excp_taken := false.B
     val exu_not_busy = !lsu_busy
-    when(intr && exu_not_busy){
+    when(intr.intr && exu_not_busy){
         idu_out.ready := false.B
-        intr_taken := true.B
+        intr.intr_taken := true.B
         pc_u.jump := true.B
         pc_u.next_pc := mtvec
-        intr_pc := pc_u.pc
+        intr.intr_pc := pc_u.pc
     }
 
 
