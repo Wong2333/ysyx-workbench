@@ -79,7 +79,6 @@ class ysyx_26030092_EXU extends Module{
     val lsu_out = IO(Flipped(Decoupled(new LSUOutBundle)))
     lsu_out.ready := false.B
 
-    val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
     val is_mem = idu_out.valid && idu_out.bits.exu_ctl.mem_op =/= MemOp.none
     val lsu_in = IO(Decoupled(new LSUBundle))
 
@@ -174,7 +173,7 @@ class ysyx_26030092_EXU extends Module{
     }.elsewhen(idu_out.fire){
         wb_slot        := wb_data
         wb_slot_commit := commit_info_comb
-        when(is_mem){ lsu_busy := true.B }.otherwise{ wb_slot_valid := true.B }
+        when(is_mem && !idu_out.bits.is_excp){ lsu_busy := true.B }.otherwise{ wb_slot_valid := true.B }
     }
 
     // forwarding
@@ -191,7 +190,7 @@ class ysyx_26030092_EXU extends Module{
     csr_info.valid := wb_slot_valid && wb_slot.CSRWrite
 
 
-    // 异常在写回级（slot valid 且 isTrap）才重定向到 mtvec
+    // excp
     val wb_trap = wb_slot_valid && wb_slot.isTrap
     when(wb_trap){
         idu_out.ready := false.B

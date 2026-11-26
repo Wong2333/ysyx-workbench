@@ -21,6 +21,8 @@ Context* __am_irq_handle(Context *c) {
     }
 
     c = user_handler(ev, c);
+    /* RTL 每次陷阱会清 0x7C1，这里在返回前重新打开中断 */
+    asm volatile("csrw 0x7c1, %0" : : "r"(1));
     assert(c != NULL);
   }
 
