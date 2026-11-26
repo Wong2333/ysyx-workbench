@@ -60,9 +60,6 @@ class ysyx_26030092_RFS extends Module {
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
 
-    val timer_intr = IO(Output(Bool()))
-    val timer_armed = IO(Output(Bool()))
-
     val trap = ExceptionPort.isTrap
 
     val Reg_u = Module(new ysyx_26030092_RegBlackBox())
@@ -85,18 +82,6 @@ class ysyx_26030092_RFS extends Module {
     val mtimer_div   = RegNext(mcycle(8), false.B)
     val mtimer_tick  = mcycle(8) && !mtimer_div
     val mtimer_ticks = RegInit(0.U(16.W))
-    val mtip         = RegInit(false.B)
-
-    when(mtimer_tick && mtimer_ticks =/= 0.U){
-        mtimer_ticks := mtimer_ticks - 1.U
-        when(mtimer_ticks === 1.U){ mtip := true.B }
-    }
-    when(ExceptionPort.isTrap && ExceptionPort.Exception_Code === "h80000007".U){
-        mtip := false.B
-    }
-
-    timer_intr  := mtip
-    timer_armed := mtimer_ticks =/= 0.U
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -127,7 +112,7 @@ class ysyx_26030092_RFS extends Module {
       is("h342".U){
         RFS_ReadPort.CSRReadPort.CSRRData := mcause
       }
-      is("h7C0".U){// 计时器剩余节拍数，0 表示已到期或未装填
+      is("h7C0".U){
         RFS_ReadPort.CSRReadPort.CSRRData := Cat(0.U(16.W), mtimer_ticks)
       }
     }
@@ -151,7 +136,6 @@ class ysyx_26030092_RFS extends Module {
         }
         is("h7C0".U){
           mtimer_ticks := CSRWritePort.CSRWData(15,0)
-          mtip         := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
@@ -163,4 +147,14 @@ class ysyx_26030092_RFS extends Module {
       mepc := ExceptionPort.PC
       mcause := ExceptionPort.Exception_Code
     }
+
+
+    val timer_intr = IO(Output(Bool()))
+    val timer_armed = IO(Output(Bool()))
+    timer_intr  := false.B
+    when(mtimer_tick && mtimer_ticks =/= 0.U){
+        mtimer_ticks := mtimer_ticks - 1.U
+        when(mtimer_ticks === 1.U){ timer_intr := true.B }
+    }
+    timer_armed := mtimer_ticks =/= 0.U
 }
