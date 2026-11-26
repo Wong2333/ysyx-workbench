@@ -160,7 +160,7 @@ class ysyx_26030092_RFS extends Module {
     }
     when(intr.timer_intr_taken){
       mepc := intr.intr_pc
-      mcause := "hFF".U
+      mcause := "h80000007".U
     }
 
     when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C1".U){
