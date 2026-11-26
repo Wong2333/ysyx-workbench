@@ -6,7 +6,6 @@ class intr2RFS extends Bundle{
     val timer_armed = Input(Bool())// RFS：计时器还在计数
     val timer_intr_taken = Output(Bool())
     val intr_pc = Output(UInt(32.W))
-    val intr_close = Output(Bool())
     val intr_en = Input(Bool())
 }
 class intr2EXU extends Bundle{
@@ -42,5 +41,4 @@ class intrUnit extends Module{
     when(!to_RFS.timer_armed) { wfi_flag := false.B }
 
     to_EXU.sleep := wfi_flag 
-    to_RFS.intr_close := to_EXU.intr_taken || to_EXU.excp_taken
 }

@@ -60,6 +60,7 @@ class ysyx_26030092_RFS extends Module {
 
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
+    val mret_in = IO(Input(Bool()))
 
     val trap = ExceptionPort.isTrap
 
@@ -152,8 +153,7 @@ class ysyx_26030092_RFS extends Module {
     //timer intr
     val intr = IO(Flipped(new intr2RFS))
     intr.timer_intr  := false.B
-    val iset = RegInit(false.B)
-    intr.intr_en := iset
+    intr.intr_en     := mstatus(3)                 // MIE
 
     // 计时器是否还在计数：只在写 0x7C0 时比较一次，到期自动清零
     val armed = RegInit(false.B)
@@ -172,14 +172,12 @@ class ysyx_26030092_RFS extends Module {
       mcause := "h80000007".U
     }
 
-    when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C1".U){
-      iset := CSRWritePort.CSRWData =/= 0.U
+    // MIE/MPIE：进陷阱备份并关中断，mret 恢复
+    when(ExceptionPort.isTrap || intr.timer_intr_taken){
+      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
-    when(RFS_ReadPort.CSRReadPort.CSRRAddr === "h7C1".U){
-      RFS_ReadPort.CSRReadPort.CSRRData := iset
-    }
-    when(intr.intr_close){
-      iset := false.B
+    when(mret_in){
+      mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
     }
 
 }

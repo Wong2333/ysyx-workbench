@@ -66,6 +66,8 @@ class ysyx_26030092 extends Module{
 
     io.master <> AXI4Arbiter_u.slave
 
+    RFS_u.mret_in := EXU_u.mret_out
+
     val intr_u = Module(new intrUnit)
     intr_u.to_EXU <> EXU_u.intr
     intr_u.to_RFS <> RFS_u.intr

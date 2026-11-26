@@ -94,6 +94,7 @@ class ysyx_26030092_EXU extends Module{
     // branch
     val redirectPC = IO(Output(UInt(32.W)))
     val mtvec = IO(Input(UInt(32.W)))
+    val mret_out = IO(Output(Bool()))
     val bpu_train = IO(Output(new BPUTrainBundle))
     val branch_u = Module(new ysyx_26030092_BranchUnit)
     val pc_u = Module(new ysyx_26030092_PCReg)
@@ -197,6 +198,8 @@ class ysyx_26030092_EXU extends Module{
         pc_u.jump     := true.B
         pc_u.next_pc  := mtvec
     }
+
+    mret_out := idu_out.fire && idu_out.bits.exu_ctl.sys_op === SysOp.mret
 
     // intr
     val intr = IO(Flipped(new intr2EXU))
