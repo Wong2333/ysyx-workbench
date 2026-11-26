@@ -23,8 +23,6 @@ class ysyx_26030092_BranchUnit extends Module{
 
     val pc        = IO(Input(UInt(32.W)))
     val alu       = IO(Input(UInt(32.W)))
-    val mtvec     = IO(Input(UInt(32.W)))
-    val lsu_trap  = IO(Input(Bool()))
     val fire      = IO(Input(Bool()))
     val idu_in    = IO(Input(new branchBundle))
 
@@ -43,16 +41,15 @@ class ysyx_26030092_BranchUnit extends Module{
     val is_mret = idu_in.sys_op === SysOp.mret
     val taken   = branch_cond || is_jump
 
-    redirect := taken || is_mret || idu_in.is_excp || lsu_trap
-    jump     := lsu_trap || (redirect && fire)
-    adv      := fire
-    next_pc  := Mux(lsu_trap, mtvec, MuxCase(0.U, Seq(
-        idu_in.is_excp -> mtvec,
+    redirect := taken || is_mret
+    jump     := redirect && fire
+    adv      := fire && !idu_in.is_excp
+    next_pc  := MuxCase(0.U, Seq(
         taken          -> alu,
-        is_mret        -> idu_in.csr_rdata)))
+        is_mret        -> idu_in.csr_rdata))
     dnpc     := Mux(redirect, next_pc, pc + 4.U)
 
-    bpu_train.valid  := fire && (is_branch || is_jump) && !lsu_trap
+    bpu_train.valid  := fire && (is_branch || is_jump)
     bpu_train.taken  := taken
     bpu_train.pc     := pc
     bpu_train.target := next_pc

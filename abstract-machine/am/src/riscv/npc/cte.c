@@ -14,9 +14,6 @@ Context* __am_irq_handle(Context *c) {
           c->mepc += 4;
         }
       break;
-      case 0x80000007u:  // 计时器中断：mepc 指向被打断的指令，不需要 +4
-        ev.event = EVENT_IRQ_TIMER;
-      break;
       default: ev.event = EVENT_ERROR; break;
     }
 

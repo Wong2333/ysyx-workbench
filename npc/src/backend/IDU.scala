@@ -467,7 +467,6 @@ class ysyx_26030092_IDU extends Module{
         }
     }
 
-    // 取指异常（icache 非对齐等）优先传递，覆盖非法/ebreak/ecall 的本地译码
     when(in.bits.is_excp){
         out_comb.is_excp := true.B
         out_comb.excp_code := in.bits.excp_code

@@ -5,6 +5,7 @@ import npc.AXI._
 // import npc.Xbar.{Arbiter,Xbar}
 import npc.device._
 import npc.PMU._
+import backend.intrUnit
 
 class ysyx_26030092 extends Module{
 
@@ -38,9 +39,6 @@ class ysyx_26030092 extends Module{
     IFU_u.RedirectPC :=EXU_u.redirectPC
     IFU_u.bpu_train := EXU_u.bpu_train
 
-    EXU_u.timer_intr  := RFS_u.timer_intr
-    EXU_u.timer_armed := RFS_u.timer_armed
-
     IDU_u.in <> IFU_u.out
     IDU_u.RFS_ReadPort <> RFS_u.RFS_ReadPort
     IDU_u.flush := EXU_u.flush
@@ -67,6 +65,12 @@ class ysyx_26030092 extends Module{
     CLINT_AXI4Router_u.toCLINT <> CLINT_u.AXI4_port
 
     io.master <> AXI4Arbiter_u.slave
+
+    RFS_u.mret_in := EXU_u.mret_out
+
+    val intr_u = Module(new intrUnit)
+    intr_u.to_EXU <> EXU_u.intr
+    intr_u.to_RFS <> RFS_u.intr
 
     PerfCounter("total_cycles") := true.B
 }

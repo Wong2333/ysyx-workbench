@@ -1,6 +1,7 @@
 package npc
 import chisel3._
 import chisel3.util._
+import backend.intr2RFS
 
 class WriteRegPortBundle extends Bundle{
     val wdata  = Output(UInt(32.W))
@@ -59,9 +60,7 @@ class ysyx_26030092_RFS extends Module {
 
     val mtvec_out = IO(Output(UInt(32.W)))
     val mtime_out = IO(Output(UInt(64.W)))
-
-    val timer_intr = IO(Output(Bool()))
-    val timer_armed = IO(Output(Bool()))
+    val mret_in = IO(Input(Bool()))
 
     val trap = ExceptionPort.isTrap
 
@@ -85,18 +84,6 @@ class ysyx_26030092_RFS extends Module {
     val mtimer_div   = RegNext(mcycle(8), false.B)
     val mtimer_tick  = mcycle(8) && !mtimer_div
     val mtimer_ticks = RegInit(0.U(16.W))
-    val mtip         = RegInit(false.B)
-
-    when(mtimer_tick && mtimer_ticks =/= 0.U){
-        mtimer_ticks := mtimer_ticks - 1.U
-        when(mtimer_ticks === 1.U){ mtip := true.B }
-    }
-    when(ExceptionPort.isTrap && ExceptionPort.Exception_Code === "h80000007".U){
-        mtip := false.B
-    }
-
-    timer_intr  := mtip
-    timer_armed := mtimer_ticks =/= 0.U
 
     mtvec_out := mtvec
     mtime_out := mcycle
@@ -127,7 +114,7 @@ class ysyx_26030092_RFS extends Module {
       is("h342".U){
         RFS_ReadPort.CSRReadPort.CSRRData := mcause
       }
-      is("h7C0".U){// 计时器剩余节拍数，0 表示已到期或未装填
+      is("h7C0".U){
         RFS_ReadPort.CSRReadPort.CSRRData := Cat(0.U(16.W), mtimer_ticks)
       }
     }
@@ -151,7 +138,6 @@ class ysyx_26030092_RFS extends Module {
         }
         is("h7C0".U){
           mtimer_ticks := CSRWritePort.CSRWData(15,0)
-          mtip         := false.B
         }
         is("h342".U){
           mcause := CSRWritePort.CSRWData
@@ -163,4 +149,34 @@ class ysyx_26030092_RFS extends Module {
       mepc := ExceptionPort.PC
       mcause := ExceptionPort.Exception_Code
     }
+
+    //timer intr
+    val intr = IO(Flipped(new intr2RFS))
+    intr.timer_intr  := false.B
+    intr.intr_en     := mstatus(3)                 // MIE
+
+    // 计时器是否还在计数：只在写 0x7C0 时比较一次，到期自动清零
+    val armed = RegInit(false.B)
+    when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C0".U){
+      armed := CSRWritePort.CSRWData(15,0) =/= 0.U
+    }
+    when(mtimer_tick && mtimer_ticks === 1.U){ armed := false.B }
+    intr.timer_armed := armed
+
+    when(mtimer_tick && mtimer_ticks =/= 0.U){
+        mtimer_ticks := mtimer_ticks - 1.U
+        when(mtimer_ticks === 1.U){ intr.timer_intr := true.B }
+    }
+    when(intr.timer_intr_taken){
+      mepc := intr.intr_pc
+      mcause := "h80000007".U
+    }
+
+    when(mret_in){
+      mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
+    }
+    when(ExceptionPort.isTrap || intr.timer_intr_taken){
+      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
+    }
+
 }
