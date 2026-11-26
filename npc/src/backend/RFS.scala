@@ -172,7 +172,6 @@ class ysyx_26030092_RFS extends Module {
       mcause := "h80000007".U
     }
 
-    // MIE/MPIE：mret 恢复，进陷阱备份并关中断（陷阱优先）
     when(mret_in){
       mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
     }
