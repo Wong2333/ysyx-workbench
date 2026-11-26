@@ -193,7 +193,6 @@ module axi_protocol_check(
   reg        wvalid_q = 1'b0, wready_q = 1'b0;
   reg [31:0] wdata_q = 32'h0;  reg [3:0] wstrb_q = 4'h0; reg wlast_q = 1'b0;
 
-  // 写数据拍的计数（每笔 AW 一个事务）
   reg [7:0] w_cnt = 8'h0;
   reg [7:0] w_total = 8'h1;
   reg       w_open = 1'b0;

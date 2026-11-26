@@ -148,13 +148,32 @@ class ysyx_26030092_RFS extends Module {
       mcause := ExceptionPort.Exception_Code
     }
 
-
+    //timer intr
     val timer_intr = IO(Output(Bool()))
     val timer_armed = IO(Output(Bool()))
+    val timer_intr_taken = IO(Input(Bool()))
+    val intr_close = IO(Input(Bool()))
+    val intr_pc = IO(Input(UInt(32.W)))
     timer_intr  := false.B
+    val iset = RegInit(false.B)
     when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
         when(mtimer_ticks === 1.U){ timer_intr := true.B }
     }
     timer_armed := mtimer_ticks =/= 0.U
+    when(timer_intr_taken){
+      mepc := intr_pc
+      mcause := "hFF".U
+    }
+
+    when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C1".U){
+      iset := CSRWritePort.CSRWData =/= 0.U
+    }
+    when(RFS_ReadPort.CSRReadPort.CSRRAddr === "h7C1".U){
+      RFS_ReadPort.CSRReadPort.CSRRData := iset
+    }
+    when(intr_close){
+      iset := false.B
+    }
+
 }
