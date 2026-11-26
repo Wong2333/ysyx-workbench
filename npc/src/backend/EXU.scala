@@ -100,8 +100,6 @@ class ysyx_26030092_EXU extends Module{
     val pc_u = Module(new ysyx_26030092_PCReg)
     branch_u.pc        := pc_u.pc
     branch_u.alu       := AluResult
-    branch_u.mtvec     := mtvec
-    branch_u.lsu_trap  := lsu_trap
     branch_u.idu_in    := idu_out.bits.to_branch
     branch_u.fire      := idu_out.fire
     branch_u.idu_in.is_excp := idu_out.bits.is_excp
@@ -196,8 +194,9 @@ class ysyx_26030092_EXU extends Module{
     // 异常在写回级（slot valid 且 isTrap）才重定向到 mtvec
     val wb_trap = wb_slot_valid && wb_slot.isTrap
     when(wb_trap){
-        pc_u.jump    := true.B
-        pc_u.next_pc := mtvec
+        idu_out.ready := false.B
+        pc_u.jump     := true.B
+        pc_u.next_pc  := mtvec
     }
 
     // intr
