@@ -58,6 +58,11 @@ __am_asm_trap:
 
   LOAD t1, OFFSET_STATUS(sp)
   LOAD t2, OFFSET_EPC(sp)
+  csrr a0, mstatus          /* 硬件管理后的 MIE/MPIE，必须保留 */
+  andi a0, a0, 0x88
+  li   a1, -137             /* ~0x88 */
+  and  t1, t1, a1
+  or   t1, t1, a0
   csrw mstatus, t1
   csrw mepc, t2
 

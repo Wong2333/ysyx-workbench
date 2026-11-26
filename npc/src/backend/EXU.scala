@@ -199,7 +199,8 @@ class ysyx_26030092_EXU extends Module{
         pc_u.next_pc  := mtvec
     }
 
-    mret_out := idu_out.fire && idu_out.bits.exu_ctl.sys_op === SysOp.mret
+    val is_mret = idu_out.fire && idu_out.bits.exu_ctl.sys_op === SysOp.mret
+    mret_out := is_mret
 
     // intr
     val intr = IO(Flipped(new intr2EXU))
@@ -208,7 +209,7 @@ class ysyx_26030092_EXU extends Module{
     intr.intr_taken := false.B
     intr.excp_taken := wb_slot_valid && wb_slot.isTrap
     val exu_not_busy = !lsu_busy && !wb_slot_valid
-    when(intr.intr){
+    when(intr.intr && !is_mret){
         idu_out.ready := false.B
         when(exu_not_busy){
             intr.intr_taken := true.B
