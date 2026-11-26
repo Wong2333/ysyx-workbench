@@ -3,7 +3,6 @@ import chisel3._
 
 class intr2RFS extends Bundle{
     val timer_intr = Input(Bool())// from and to RFS
-    val timer_armed = Input(Bool())// RFS：计时器还在计数
     val timer_intr_taken = Output(Bool())
     val intr_pc = Output(UInt(32.W))
     val intr_close = Output(Bool())
@@ -36,9 +35,8 @@ class intrUnit extends Module{
 
     val wfi_flag = RegInit(false.B)
 
-    when(to_EXU.wfi && to_RFS.timer_armed) { wfi_flag := true.B }
-    when(to_RFS.timer_intr) { wfi_flag := false.B }
-    when(!to_RFS.timer_armed) { wfi_flag := false.B }
+    when(to_EXU.wfi) {wfi_flag := true.B}
+    when(to_RFS.timer_intr) { wfi_flag := false.B}
 
     to_EXU.sleep := wfi_flag 
     to_RFS.intr_close := to_EXU.intr_taken || to_EXU.excp_taken

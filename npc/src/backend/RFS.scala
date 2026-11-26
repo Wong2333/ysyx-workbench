@@ -152,7 +152,6 @@ class ysyx_26030092_RFS extends Module {
     //timer intr
     val intr = IO(Flipped(new intr2RFS))
     intr.timer_intr  := false.B
-    intr.timer_armed := mtimer_ticks =/= 0.U
     val iset = RegInit(false.B)
     when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
@@ -160,7 +159,7 @@ class ysyx_26030092_RFS extends Module {
     }
     when(intr.timer_intr_taken){
       mepc := intr.intr_pc
-      mcause := "h80000007".U
+      mcause := "hFF".U
     }
 
     when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C1".U){
