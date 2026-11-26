@@ -19,7 +19,7 @@ class intrUnit extends Module{
     val to_RFS = IO(new intr2RFS)
 
     val to_EXU = IO(new intr2EXU)
-    to_EXU.intr_pc := to_RFS.intr_pc
+    to_RFS.intr_pc := to_EXU.intr_pc
 
     val intr_flag = RegInit(false.B)
     to_EXU.intr := intr_flag
