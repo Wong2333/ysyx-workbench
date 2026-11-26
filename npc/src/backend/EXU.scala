@@ -193,16 +193,21 @@ class ysyx_26030092_EXU extends Module{
 
     // intr
     val intr = IO(Flipped(new intr2EXU))
+    intr.intr_pc := DontCare
+    intr.wfi := idu_out.bits.exu_ctl.wfi && idu_out.fire
     intr.intr_taken := false.B
-    intr.excp_taken := false.B
+    intr.excp_taken := wb_slot_valid && wb_slot.isTrap
     val exu_not_busy = !lsu_busy
-    when(intr.intr && exu_not_busy){
+    when(intr.intr){
         idu_out.ready := false.B
-        intr.intr_taken := true.B
-        pc_u.jump := true.B
-        pc_u.next_pc := mtvec
-        intr.intr_pc := pc_u.pc
+        when(exu_not_busy){
+            intr.intr_taken := true.B
+            pc_u.jump := true.B
+            pc_u.next_pc := mtvec
+            intr.intr_pc := pc_u.pc
+        }
     }
+    when(intr.sleep) { idu_out.ready := false.B }
 
 
     PerfCounter("EXU_flush_count")         := flush

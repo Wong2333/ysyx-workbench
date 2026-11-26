@@ -13,6 +13,7 @@ class intr2EXU extends Bundle{
     val excp_taken = Input(Bool())
     val intr_pc = Input(UInt(32.W))
     val sleep = Output(Bool())
+    val wfi = Input(Bool())
 }
 
 class intrUnit extends Module{
@@ -32,10 +33,9 @@ class intrUnit extends Module{
         to_RFS.timer_intr_taken := true.B
     }
 
-    val wfi = IO(Input(Bool()))
     val wfi_flag = RegInit(false.B)
 
-    when(wfi) {wfi_flag := true.B}
+    when(to_EXU.wfi) {wfi_flag := true.B}
     when(to_RFS.timer_intr) { wfi_flag := false.B}
 
     to_EXU.sleep := wfi_flag 
