@@ -172,12 +172,12 @@ class ysyx_26030092_RFS extends Module {
       mcause := "h80000007".U
     }
 
-    // MIE/MPIE：进陷阱备份并关中断，mret 恢复
-    when(ExceptionPort.isTrap || intr.timer_intr_taken){
-      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
-    }
+    // MIE/MPIE：mret 恢复，进陷阱备份并关中断（陷阱优先）
     when(mret_in){
       mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
+    }
+    when(ExceptionPort.isTrap || intr.timer_intr_taken){
+      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
 
 }
