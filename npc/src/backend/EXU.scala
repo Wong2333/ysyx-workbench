@@ -52,11 +52,11 @@ class EXUCTLBundle extends Bundle{
 
 class ysyx_26030092_EXU extends Module{
 
-    val timer_intr  = IO(Input(Bool()))
+    // val timer_intr  = IO(Input(Bool()))
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
-    
+
     // ALU
     val src1 = WireDefault(0.U(32.W))
     switch(idu_out.bits.exu_ctl.ALU_Src1){
