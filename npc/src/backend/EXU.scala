@@ -56,25 +56,7 @@ class ysyx_26030092_EXU extends Module{
 
 
     val idu_out = IO(Flipped(Decoupled(new IDUBundle)))
-
-
-    // lsu接线
-    val lsu_out = IO(Flipped(Decoupled(new LSUOutBundle)))
-    lsu_out.ready := false.B
-
-    val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
-    val is_mem = idu_out.valid && idu_out.bits.exu_ctl.mem_op =/= MemOp.none
-    val lsu_in = IO(Decoupled(new LSUBundle))
-
-    lsu_in.bits := 0.U.asTypeOf(new LSUBundle)
-    lsu_in.bits.addr := AluResult
-    lsu_in.bits.wdata := idu_out.bits.rs2_data
-    lsu_in.bits.mem_op := idu_out.bits.exu_ctl.mem_op
-    lsu_in.bits.mem_size := idu_out.bits.exu_ctl.mem_size
-    lsu_in.bits.mem_signed := idu_out.bits.exu_ctl.mem_signed
-    lsu_in.bits.pc := idu_out.bits.decode.pc
-    lsu_in.valid  := idu_out.fire && is_mem
-
+    
     // ALU
     val src1 = WireDefault(0.U(32.W))
     switch(idu_out.bits.exu_ctl.ALU_Src1){
@@ -94,6 +76,23 @@ class ysyx_26030092_EXU extends Module{
     ALU_u.in.src2 := src2
     val AluResult = ALU_u.out
     dontTouch(AluResult)
+
+    // lsu接线
+    val lsu_out = IO(Flipped(Decoupled(new LSUOutBundle)))
+    lsu_out.ready := false.B
+
+    val lsu_trap = lsu_out.fire && lsu_out.bits.is_excp
+    val is_mem = idu_out.valid && idu_out.bits.exu_ctl.mem_op =/= MemOp.none
+    val lsu_in = IO(Decoupled(new LSUBundle))
+
+    lsu_in.bits := 0.U.asTypeOf(new LSUBundle)
+    lsu_in.bits.addr := AluResult
+    lsu_in.bits.wdata := idu_out.bits.rs2_data
+    lsu_in.bits.mem_op := idu_out.bits.exu_ctl.mem_op
+    lsu_in.bits.mem_size := idu_out.bits.exu_ctl.mem_size
+    lsu_in.bits.mem_signed := idu_out.bits.exu_ctl.mem_signed
+    lsu_in.bits.pc := idu_out.bits.decode.pc
+    lsu_in.valid  := idu_out.fire && is_mem
 
     // branch
     val redirectPC = IO(Output(UInt(32.W)))
