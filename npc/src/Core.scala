@@ -5,7 +5,7 @@ import npc.AXI._
 // import npc.Xbar.{Arbiter,Xbar}
 import npc.device._
 import npc.PMU._
-import backend.intrUnit
+import backend._
 
 class ysyx_26030092 extends Module{
 
@@ -68,7 +68,7 @@ class ysyx_26030092 extends Module{
 
     RFS_u.mret_in := EXU_u.mret_out
 
-    val intr_u = Module(new intrUnit)
+    val intr_u = Module(new ysyx_26030092_intrUnit)
     intr_u.to_EXU <> EXU_u.intr
     intr_u.to_RFS <> RFS_u.intr
 
