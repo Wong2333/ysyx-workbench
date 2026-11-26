@@ -24,7 +24,7 @@ class intrUnit extends Module{
 
     val intr_flag = RegInit(false.B)
     to_EXU.intr := intr_flag
-
+    to_RFS.timer_intr_taken := false.B
     when(to_RFS.timer_intr){
         intr_flag := true.B
     }
