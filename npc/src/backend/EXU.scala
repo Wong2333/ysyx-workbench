@@ -197,7 +197,7 @@ class ysyx_26030092_EXU extends Module{
     intr.wfi := idu_out.bits.exu_ctl.wfi && idu_out.fire
     intr.intr_taken := false.B
     intr.excp_taken := wb_slot_valid && wb_slot.isTrap
-    val exu_not_busy = !lsu_busy
+    val exu_not_busy = !lsu_busy && !wb_slot_valid
     when(intr.intr){
         idu_out.ready := false.B
         when(exu_not_busy){

@@ -153,6 +153,7 @@ class ysyx_26030092_RFS extends Module {
     val intr = IO(Flipped(new intr2RFS))
     intr.timer_intr  := false.B
     val iset = RegInit(false.B)
+    intr.intr_en := iset
 
     // 计时器是否还在计数：只在写 0x7C0 时比较一次，到期自动清零
     val armed = RegInit(false.B)

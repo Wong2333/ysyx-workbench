@@ -7,6 +7,7 @@ class intr2RFS extends Bundle{
     val timer_intr_taken = Output(Bool())
     val intr_pc = Output(UInt(32.W))
     val intr_close = Output(Bool())
+    val intr_en = Input(Bool())
 }
 class intr2EXU extends Bundle{
     val intr = Output(Bool()) // from and to EXU
@@ -24,7 +25,7 @@ class intrUnit extends Module{
     to_RFS.intr_pc := to_EXU.intr_pc
 
     val intr_flag = RegInit(false.B)
-    to_EXU.intr := intr_flag
+    to_EXU.intr := intr_flag & to_RFS.intr_en
     to_RFS.timer_intr_taken := false.B
     when(to_RFS.timer_intr){
         intr_flag := true.B
