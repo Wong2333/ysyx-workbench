@@ -132,8 +132,6 @@ class ysyx_26030092_EXU extends Module{
     val take_intr = timer_intr && idu_out.fire && !is_mem
     val eff_excp  = idu_out.bits.is_excp || take_intr
 
-    // WFI：指令正常退休，之后停住取指直到中断到来；
-    // 只有在计时器还装着的时候才进入等待，否则当 NOP（避免永久卡死）
     when(idu_out.fire && idu_out.bits.exu_ctl.wfi && timer_armed){ wfi_flag := true.B }
     when(take_intr)                              { wfi_flag := false.B }
     branch_u.idu_in.is_excp := eff_excp
