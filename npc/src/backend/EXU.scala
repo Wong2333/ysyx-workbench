@@ -115,7 +115,7 @@ class ysyx_26030092_EXU extends Module{
     // flush
     val flush = IO(Output(Bool()))
     val fencei = IO(Output(Bool()))
-    val pc_valid_not_hit = (idu_out.bits.pc_valid && idu_out.bits.decode.pc === pc_u.pc)
+    val pc_valid_not_hit = (idu_out.bits.pc_valid && idu_out.bits.decode.pc =/= pc_u.pc)
     fencei := RegNext(idu_out.fire && idu_out.bits.exu_ctl.fence_i, false.B)
     flush  := pc_valid_not_hit | fencei
     redirectPC := pc_u.pc
