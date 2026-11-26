@@ -17,7 +17,7 @@ class intr2EXU extends Bundle{
     val wfi = Input(Bool())
 }
 
-class intrUnit extends Module{
+class ysyx_26030092_intrUnit extends Module{
     val to_RFS = IO(new intr2RFS)
 
     val to_EXU = IO(new intr2EXU)
