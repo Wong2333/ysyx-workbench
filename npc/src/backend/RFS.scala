@@ -152,8 +152,16 @@ class ysyx_26030092_RFS extends Module {
     //timer intr
     val intr = IO(Flipped(new intr2RFS))
     intr.timer_intr  := false.B
-    intr.timer_armed := mtimer_ticks =/= 0.U
     val iset = RegInit(false.B)
+
+    // 计时器是否还在计数：只在写 0x7C0 时比较一次，到期自动清零
+    val armed = RegInit(false.B)
+    when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C0".U){
+      armed := CSRWritePort.CSRWData(15,0) =/= 0.U
+    }
+    when(mtimer_tick && mtimer_ticks === 1.U){ armed := false.B }
+    intr.timer_armed := armed
+
     when(mtimer_tick && mtimer_ticks =/= 0.U){
         mtimer_ticks := mtimer_ticks - 1.U
         when(mtimer_ticks === 1.U){ intr.timer_intr := true.B }
