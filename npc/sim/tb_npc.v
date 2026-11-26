@@ -1,4 +1,4 @@
-// iverilog 四值仿真顶层：单独仿真 NPC（不接 ysyxSoC）
+// iverilog 四值仿真顶层：单独仿真 NPC
 // 程序从 0x80000000 开始，存储器用 axi_mem 行为模型，$readmemh 初始化
 `timescale 1ns/1ps
 module tb_npc;

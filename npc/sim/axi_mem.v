@@ -19,7 +19,7 @@ module axi_mem #(
   input  rready,  output rvalid, output [1:0] rresp, output [31:0] rdata,
   output [3:0] rid, output rlast
 );
-  // ---------------- PMEM ----------------
+
   reg [31:0] mem [0:WORDS-1];
 
   integer zi;
@@ -58,7 +58,6 @@ module axi_mem #(
   assign rresp   = 2'b00;
   assign bid     = aw_id;
 
-  // ---------------- 读 ----------------
   reg        r_busy = 1'b0, r_valid = 1'b0;
   reg [31:0] r_addr; reg [7:0] r_len; reg [3:0] r_id; reg [31:0] r_data;
 
@@ -88,12 +87,11 @@ module axi_mem #(
       r_busy <= 1'b0; r_valid <= 1'b0;
       warned <= 1'b0;
     end else begin
-      // --- 写通道 ---
+
       if (awvalid && awready) begin aw_got <= 1'b1; aw_addr <= awaddr; aw_id <= awid; end
       if (wvalid  && wready)  begin w_got  <= 1'b1; w_data  <= wdata;  w_strb <= wstrb; end
       if (aw_got && w_got && !b_valid) begin
         if (aw_is_uart) begin
-          // 串口：按 wstrb 逐字节打印
           if (w_strb[0]) $write("%c", w_data[7:0]);
           if (w_strb[1]) $write("%c", w_data[15:8]);
           if (w_strb[2]) $write("%c", w_data[23:16]);
@@ -104,7 +102,7 @@ module axi_mem #(
           if (w_strb[2]) mem[aw_addr[25:2]][23:16] <= w_data[23:16];
           if (w_strb[3]) mem[aw_addr[25:2]][31:24] <= w_data[31:24];
         end else if (!aw_is_rtc && !warned) begin
-          // 未映射地址：忽略写，只告警一次，避免刷屏
+
           $display("[axi_mem] 未映射的写: 0x%08x = 0x%08x（已忽略）", aw_addr, w_data);
           warned <= 1'b1;
         end
