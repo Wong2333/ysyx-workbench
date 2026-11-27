@@ -178,4 +178,14 @@ class ysyx_26030092_RFS extends Module {
       mstatus := (mstatus & "hFFFFFFF7".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
 
+    when(ExceptionPort.isTrap && ExceptionPort.PC < "h80000000".U){
+      printf(p"[BAD] trap mepc=${Hexadecimal(ExceptionPort.PC)}\n")
+    }
+    when(intr.timer_intr_taken && intr.intr_pc < "h80000000".U){
+      printf(p"[BAD] intr mepc=${Hexadecimal(intr.intr_pc)}\n")
+    }
+    when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h341".U && CSRWritePort.CSRWData < "h80000000".U){
+      printf(p"[BAD] sw mepc=${Hexadecimal(CSRWritePort.CSRWData)}\n")
+    }
+
 }
