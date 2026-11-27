@@ -142,9 +142,6 @@ class ysyx_26030092_EXU extends Module{
     val commit_info_comb = Wire(new CommitInfoBundle)
     val wb_slot_commit = Reg(new CommitInfoBundle)
     commit_info   := wb_slot_commit
-    when(wb_slot_valid && wb_slot.isTrap){
-        commit_info.next_pc := mtvec
-    }
     commit_info_comb.mem := is_mem
     commit_info_comb.mem_addr := AluResult
     commit_info_comb.pc := idu_out.bits.decode.pc
@@ -200,6 +197,10 @@ class ysyx_26030092_EXU extends Module{
         idu_out.ready := false.B
         pc_u.jump     := true.B
         pc_u.next_pc  := mtvec
+    }
+    // 异常指令提交时，报告的下一跳是 mtvec
+    when(wb_trap){
+        commit_info.next_pc := mtvec
     }
 
     mret_out := idu_out.fire && idu_out.bits.exu_ctl.sys_op === SysOp.mret
