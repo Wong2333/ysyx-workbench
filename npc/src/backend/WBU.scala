@@ -95,7 +95,7 @@ class ysyx_26030092_WBU extends Module{
 
     val invalid_instruction = Module(new ysyx_26030092_InvalidInstructionBlackBox())
     invalid_instruction.io.pc := ExceptionPort.PC
-    invalid_instruction.io.inst := DontCare
+    invalid_instruction.io.inst := commit_info.inst
     invalid_instruction.io.invalid := false.B
 
     // 访存错误 / ebreak 指令：仿真终止（BAD TRAP）
