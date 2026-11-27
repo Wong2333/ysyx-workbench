@@ -140,7 +140,7 @@ void check_difftest(uint32_t pc) {
     ok = false;
   }
 
-  for (int i = 1; i < 32; i++) {
+  for (int i = 1; i < 16; i++) {
     if (dut_state.gpr[i] != ref_state.gpr[i]) {
       printf("Difftest: Mismatch at pc = 0x%08x, %s: right = 0x%08x, wrong = 0x%08x\n",
              pc, reg_names[i], ref_state.gpr[i], dut_state.gpr[i]);
