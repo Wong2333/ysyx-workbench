@@ -142,11 +142,14 @@ class ysyx_26030092_EXU extends Module{
     val commit_info_comb = Wire(new CommitInfoBundle)
     val wb_slot_commit = Reg(new CommitInfoBundle)
     commit_info   := wb_slot_commit
+    when(wb_slot_valid && wb_slot.isTrap){
+        commit_info.next_pc := mtvec
+    }
     commit_info_comb.mem := is_mem
     commit_info_comb.mem_addr := AluResult
     commit_info_comb.pc := idu_out.bits.decode.pc
     commit_info_comb.inst := idu_out.bits.decode.inst
-    commit_info_comb.next_pc := branch_u.dnpc
+    commit_info_comb.next_pc := Mux(idu_out.bits.is_excp, mtvec, branch_u.dnpc)
 
     // 非访存指令流水 & FSM
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
