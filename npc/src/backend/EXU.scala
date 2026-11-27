@@ -146,7 +146,7 @@ class ysyx_26030092_EXU extends Module{
     commit_info_comb.mem_addr := AluResult
     commit_info_comb.pc := idu_out.bits.decode.pc
     commit_info_comb.inst := idu_out.bits.decode.inst
-    commit_info_comb.next_pc := branch_u.dnpc
+    commit_info_comb.next_pc := Mux(idu_out.bits.is_excp, mtvec, branch_u.dnpc)
 
     // 非访存指令流水 & FSM
     val wbu_in = IO(Decoupled(new WriteBackPortBundle))
@@ -197,6 +197,10 @@ class ysyx_26030092_EXU extends Module{
         idu_out.ready := false.B
         pc_u.jump     := true.B
         pc_u.next_pc  := mtvec
+    }
+    // 异常指令提交时，报告的下一跳是 mtvec
+    when(wb_trap){
+        commit_info.next_pc := mtvec
     }
 
     mret_out := idu_out.fire && idu_out.bits.exu_ctl.sys_op === SysOp.mret

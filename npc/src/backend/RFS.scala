@@ -155,7 +155,6 @@ class ysyx_26030092_RFS extends Module {
     intr.timer_intr  := false.B
     intr.intr_en     := mstatus(3)                 // MIE
 
-    // 计时器是否还在计数：只在写 0x7C0 时比较一次，到期自动清零
     val armed = RegInit(false.B)
     when(CSRWritePort.CSRWrite && !trap && CSRWritePort.CSRWAddr === "h7C0".U){
       armed := CSRWritePort.CSRWData(15,0) =/= 0.U
@@ -173,10 +172,10 @@ class ysyx_26030092_RFS extends Module {
     }
 
     when(mret_in){
-      mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
+      mstatus := (mstatus & "hFFFFFF77".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
     }
     when(ExceptionPort.isTrap || intr.timer_intr_taken){
-      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
+      mstatus := (mstatus & "hFFFFFFF7".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
 
 }
