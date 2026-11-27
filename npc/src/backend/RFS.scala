@@ -178,5 +178,4 @@ class ysyx_26030092_RFS extends Module {
       mstatus := (mstatus & "hFFFFFFF7".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
 
-
 }
