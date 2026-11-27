@@ -173,10 +173,10 @@ class ysyx_26030092_RFS extends Module {
     }
 
     when(mret_in){
-      mstatus := (mstatus & ~"h88".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
+      mstatus := (mstatus & "hFFFFFF77".U) | ((mstatus & "h80".U) >> 4) | "h80".U  // MIE <= MPIE, MPIE <= 1
     }
     when(ExceptionPort.isTrap || intr.timer_intr_taken){
-      mstatus := (mstatus & ~"h8".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
+      mstatus := (mstatus & "hFFFFFFF7".U) | ((mstatus & "h8".U) << 4)   // MPIE <= MIE, MIE <= 0
     }
 
 }
