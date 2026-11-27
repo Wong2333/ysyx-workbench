@@ -22,7 +22,6 @@ class ysyx_26030092_AXI4Arbiter(n_in : Int) extends Module{
         slave.arid := 1.U
     }
 
-    // R
     for(i <- 0 until n_in){
         master(i).rvalid := slave.rvalid && (slave.rid === i.U)
         master(i).rid    := slave.rid
