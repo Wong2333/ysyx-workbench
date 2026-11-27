@@ -60,7 +60,6 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
   val toCLINT = IO(new AXI4Bundle)
   val toSoC = IO(new AXI4Bundle)
 
-  // CLINT 地址空间定义 0x02000000 - 0x0200BFFF
   val CLINT_BASE = 0x02000000L
   val CLINT_SIZE = 0x10000L
 
@@ -76,7 +75,7 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
     is(r_idle) {
       when(in.arvalid) {
         val isCLINT = (in.araddr >= CLINT_BASE.U) && (in.araddr < (CLINT_BASE + CLINT_SIZE).U)
-        
+
         r_sel_clint := isCLINT
         r_status := r_busy
 
@@ -104,7 +103,6 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
     }
   }
 
-  // 写通道
   val w_idle :: w_busy :: Nil = Enum(2)
   val w_status = RegInit(w_idle)
   val w_sel_clint = RegInit(false.B)
