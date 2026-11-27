@@ -107,6 +107,7 @@ class ysyx_26030092_EXU extends Module{
     pc_u.adv     := branch_u.adv
     pc_u.jump     := branch_u.jump
     pc_u.next_pc  := branch_u.next_pc
+    dontTouch(pc_u.jump)
 
 
     // flush
