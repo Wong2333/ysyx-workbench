@@ -113,7 +113,6 @@ class ysyx_26030092_IDU extends Module{
     def conflict(rs: UInt, info: StageWriteInfoBundle): Bool =
         info.wen && rs =/= 0.U && rs === info.rd
 
-    // CSR 写后读：csrrs/csrrw 读 imm(11,0)，mret 读 mepc(0x341)
     val csr_read_addr = MuxCase(0.U(12.W), Seq(
         (out_comb.exu_ctl.sys_op === SysOp.mret)          -> "h341".U,
         (out_comb.exu_ctl.csr_op =/= CSROp.none)          -> out_comb.decode.imm(11,0)

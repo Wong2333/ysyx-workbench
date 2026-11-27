@@ -17,8 +17,6 @@ class ysyx_26030092_CLINT extends Module{
 
     switch(status){
         is(s_idle){
-            // 段内任何地址的读都接受：mtime/mtimeh 返回计数值，其它返回 0，
-            // 避免"范围被拦截但地址不认识"导致 master 永远等不到响应
             AXI4_port.arready := true.B
             when(AXI4_port.arvalid){
                 out_hi := AXI4_port.araddr === (0x02000000L + 0XBFF8 + 4).U
@@ -36,7 +34,6 @@ class ysyx_26030092_CLINT extends Module{
         }
     }
 
-    // 写通道：mtimecmp/msip 等不实现，接受后直接回 OKAY，避免 master 挂死
     val aw_got = RegInit(false.B)
     val w_got  = RegInit(false.B)
     val b_valid = RegInit(false.B)
@@ -63,7 +60,7 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
   val toCLINT = IO(new AXI4Bundle)
   val toSoC = IO(new AXI4Bundle)
 
-  // CLINT 地址空间定义 (标准地址: 0x02000000 - 0x0200BFFF)
+  // CLINT 地址空间定义 0x02000000 - 0x0200BFFF
   val CLINT_BASE = 0x02000000L
   val CLINT_SIZE = 0x10000L
 
@@ -93,7 +90,6 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
       }
     }
     is(r_busy) {
-      // 保持连接直到握手完成
       when(r_sel_clint) {
         toCLINT.connectARFrom(in, true.B)
         toCLINT.connectRFrom(in, true.B)
@@ -108,7 +104,7 @@ class ysyx_26030092_CLINT_AXI4Router extends Module {
     }
   }
 
-  // ================= 写通道状态机 =================
+  // 写通道
   val w_idle :: w_busy :: Nil = Enum(2)
   val w_status = RegInit(w_idle)
   val w_sel_clint = RegInit(false.B)

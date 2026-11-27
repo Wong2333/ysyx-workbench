@@ -103,16 +103,13 @@ class ysyx_26030092_LSU extends Module{
     AXI4_port.arvalid := state === s_ar
     AXI4_port.araddr  := addr
     AXI4_port.arsize  := axi_size(size)
-    AXI4_port.arburst := 1.U   // INCR
     AXI4_port.rready  := state === s_data
     AXI4_port.awvalid := state === s_aw && !aw_done
     AXI4_port.awaddr  := addr
     AXI4_port.awsize  := axi_size(size)
-    AXI4_port.awburst := 1.U   // INCR
     AXI4_port.wvalid  := state === s_aw && !w_done
     AXI4_port.wdata   := store_shift
     AXI4_port.wstrb   := store_strb
-    AXI4_port.wlast   := true.B
     AXI4_port.bready  := state === s_b
 
     switch(state){
