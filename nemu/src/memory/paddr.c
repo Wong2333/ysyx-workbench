@@ -156,8 +156,6 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     pmem_write(addr, len, data);
     return;
   }
-  printf("mmio write\n");
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
-  printf("mmio write2\n");
   out_of_bound(addr);
 }
