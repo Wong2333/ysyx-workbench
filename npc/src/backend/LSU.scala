@@ -92,12 +92,12 @@ class ysyx_26030092_LSU extends Module{
         MemSize.half -> ("b11".U(4.W) << addr(1,0))(3,0)))
 
     val mtrace_u = Module(new ysyx_26030092_mtrace)
-    mtrace_u.io.is_write := true.B
+    mtrace_u.io.is_write := to_store
     mtrace_u.io.addr     := addr
-    mtrace_u.io.data     := wdata
+    mtrace_u.io.data     := Mux(to_store, wdata, load_data)
     mtrace_u.io.size     := MuxLookup(size, 4.U)(Seq(MemSize.byte -> 1.U, MemSize.half -> 2.U))
     mtrace_u.io.pc       := pc
-    mtrace_u.io.valid    := state === s_b && AXI4_port.bvalid
+    mtrace_u.io.valid    := (state === s_data && AXI4_port.rvalid) || (state === s_b && AXI4_port.bvalid)
 
     AXI4_port.initMaster()
     AXI4_port.arvalid := state === s_ar
