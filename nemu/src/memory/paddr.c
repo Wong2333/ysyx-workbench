@@ -35,7 +35,7 @@ static uint8_t sdram[CONFIG_SDRAM_SIZE] = {};
 
 uint8_t* guest_to_host(paddr_t paddr) {
   if(in_pmem(paddr))
-    return pmem + paddr - CONFIG_MBASE; 
+    return pmem + paddr - CONFIG_MBASE;
 #ifdef CONFIG_YSYXSOC_MODE
   else if(in_mrom(paddr)){
     return mrom + paddr - CONFIG_MROM_BASE;
