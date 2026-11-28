@@ -26,9 +26,9 @@ extern CPU_state cpu;
 void isa_reg_display() {
   for (size_t i = 0; i < 32; i++)
   {
-    printf("%-10s %-10x %-10x\n",reg_name(i),gpr(i),gpr(i));
+    printf("%-10s %-10x %-10d\n",reg_name(i),gpr(i),gpr(i));
   }
-  printf("%-10s %-10x %-10x\n","pc",cpu.pc,cpu.pc);
+  printf("%-10s %-10x %-10d\n","pc",cpu.pc,cpu.pc);
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
