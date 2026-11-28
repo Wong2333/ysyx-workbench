@@ -32,7 +32,7 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
 void device_update();
-#if defined(CONFIG_WATCHOINT) && !defined(CONFIG_TARGET_AM)
+#if defined(CONFIG_WATCHPOINT) && !defined(CONFIG_TARGET_AM)
 bool check_wp();
 #endif
 
@@ -67,7 +67,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   record_icachesim(_this->pc);
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
-#if defined(CONFIG_WATCHOINT) && !defined(CONFIG_TARGET_AM)
+#if defined(CONFIG_WATCHPOINT) && !defined(CONFIG_TARGET_AM)
   if(check_wp()){
     if(nemu_state.state == NEMU_RUNNING)
       nemu_state.state = NEMU_STOP;
