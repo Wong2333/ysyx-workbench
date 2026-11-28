@@ -54,11 +54,6 @@ uint8_t* guest_to_host(paddr_t paddr) {
 }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
-#ifdef CONFIG_YSYXSOC_MODE
-uint8_t* mrom_guest_to_host(paddr_t paddr) { return mrom + paddr - CONFIG_MROM_BASE; }
-uint8_t* sram_guest_to_host(paddr_t paddr) { return sram + paddr - CONFIG_SRAM_BASE; }
-#endif
-
 static word_t pmem_read(paddr_t addr, int len) {
   word_t ret = host_read(guest_to_host(addr), len);
   return ret;
@@ -84,41 +79,7 @@ void init_mem() {
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 }
 
-
-#ifdef CONFIG_YSYXSOC_MODE
-// ysyxSoC 串口（16550 @ 0x10000000）：写数据寄存器输出字符，
-// 读线路状态寄存器（0x5）恒返回 THRE 置位（发送保持寄存器空）
-static inline bool in_uart(paddr_t addr) {
-  return addr >= 0x10000000 && addr < 0x10001000;
-}
-// ysyxSoC 其他外设：GPIO(0x10002000)/键盘(0x10011000)/VGA(0x21000000)，
-// NEMU 不模拟其行为，读返回 0、写忽略。仅在 ysyxsoc_mode 下生效。
-static inline bool in_ysyxsoc_dev(paddr_t addr) {
-  return (addr >= 0x10002000 && addr < 0x10003000) ||
-         (addr >= 0x10011000 && addr < 0x10012000) ||
-         (addr >= 0x21000000 && addr < 0x21200000);
-}
-// ysyxSoC RTC（mtime @ 0x0200BFF8，64 位微秒时间，AM timer 读取）
-static inline bool in_rtc(paddr_t addr) {
-  return addr >= 0x0200BFF8 && addr < 0x0200C000;
-}
-#endif
-
 word_t paddr_read(paddr_t addr, int len) {
-#ifdef CONFIG_YSYXSOC_MODE
-  if (ysyxsoc_mode) {
-    if (in_uart(addr)) {
-      return 0x20; // UART_LS_THRE
-    }
-    if (in_rtc(addr)) {
-      uint64_t t = get_time();
-      return (addr == 0x0200BFF8) ? (word_t)(t & 0xffffffff) : (word_t)(t >> 32);
-    }
-    if (in_ysyxsoc_dev(addr)) {
-      return 0;
-    }
-  }
-#endif
   if (likely(in_pmem(addr)
 #ifdef CONFIG_YSYXSOC_MODE
     || in_mrom(addr) || in_sram(addr) || in_flash(addr) || in_sdram(addr)
@@ -133,20 +94,6 @@ word_t paddr_read(paddr_t addr, int len) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-#ifdef CONFIG_YSYXSOC_MODE
-  if (ysyxsoc_mode) {
-    if (in_uart(addr)) {
-      if (addr == 0x10000000) {
-        putchar(data & 0xff);
-        fflush(stdout);
-      }
-      return;
-    }
-    if (in_rtc(addr) || in_ysyxsoc_dev(addr)) {
-      return;
-    }
-  }
-#endif
   if (likely(in_pmem(addr)
 #ifdef CONFIG_YSYXSOC_MODE
     || in_sram(addr) || in_flash(addr) || in_sdram(addr)
