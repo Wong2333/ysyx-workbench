@@ -75,7 +75,7 @@ void ebreak() {
     if(status == 0){
         printf("\033[32mHIT GOOD TRAP\033[0m\n");
         close_tfp();
-        exit(1);
+        exit(0);
     }else{
         printf("\033[31mHIT BAD TRAP\033[0m\n");
         close_tfp();
