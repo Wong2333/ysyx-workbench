@@ -16,7 +16,7 @@ static int print_hex(char *out, unsigned int val, int upper) {
     return 1;
   }
 
-  while (val > 0) {
+  while (val >= 0) {
     buffer[i++] = hex_digits[val & 0xf];
     val >>= 4;
   }
