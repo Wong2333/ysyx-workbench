@@ -157,6 +157,6 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     return;
   }
   printf("mmio write\n");
-  IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data););
+  IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return;);
   out_of_bound(addr);
 }
