@@ -21,7 +21,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    * Then return the address of the interrupt/exception vector.
    */
   cpu.mstatus = (cpu.mstatus & ~0x8U) | ((cpu.mstatus & 0x8U) << 4);
-  cpu.mepc = epc + 4;
+  cpu.mepc = epc;
   cpu.mcause = NO;
   record_etrace(NO,epc,cpu.mtvec);
   return cpu.mtvec;
