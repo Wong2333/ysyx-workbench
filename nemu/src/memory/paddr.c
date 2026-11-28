@@ -147,7 +147,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     }
   }
 #endif
-  if (likely(!in_pmem(addr)
+  if (likely(in_pmem(addr)
 #ifdef CONFIG_YSYXSOC_MODE
     || in_sram(addr) || in_flash(addr) || in_sdram(addr)
 #endif
