@@ -69,6 +69,7 @@ $(BIN): $(KCONFIG_INCLUDE) $(CORE) $(VSRCS) $(PERF_NAMES_H) $(SOC_CSRCS) $(NVBOA
 		--top-module $(TOPNAME) $(CORE) $(SOC_CSRCS) $(NVBOARD_ARCHIVE)\
 		-CFLAGS "$(CXXFLAGS)" -LDFLAGS "$(LDFLAGS)" \
 		--Mdir $(OBJ_DIR) --exe -o  $(CURDIR)/$(BIN) \
+		-Iresources/include
 
 sim: bin
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
